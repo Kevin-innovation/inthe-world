@@ -18,12 +18,14 @@
     "maplibre-gl": "5.14.0",
     "next": "15.5.7",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "three": "0.185.1"
   },
   "devDependencies": {
     "@types/node": "22.17.2",
     "@types/react": "19.1.8",
     "@types/react-dom": "19.1.6",
+    "@types/three": "0.185.4",
     "typescript": "5.8.3"
   }
 }

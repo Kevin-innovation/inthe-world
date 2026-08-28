@@ -7,6 +7,7 @@ import {
   FATE_FACTORY_COST,
   FATE_SPIRIT_COST,
 } from "@simul/sim";
+import { CinematicGlobe } from "@/components/stage/CinematicGlobe";
 import { t } from "@/lib/i18n";
 
 const REVEAL_MS = 1600;
@@ -146,6 +147,8 @@ export function AssignCinematic() {
   if (error && !payload) {
     return (
       <main className="landing">
+        <CinematicGlobe />
+        <div className="landing-veil" />
         <div className="landing-card assign-card">
           <p className="hq-error">{error}</p>
           <a className="landing-play" href="/dev/harness">
@@ -159,6 +162,8 @@ export function AssignCinematic() {
   if (!payload) {
     return (
       <main className="landing">
+        <CinematicGlobe haste />
+        <div className="landing-veil" />
         <div className="landing-card assign-card">
           <p className="landing-kicker">{t("assign.kicker")}</p>
           <p>{t("assign.loading")}</p>
@@ -174,11 +179,13 @@ export function AssignCinematic() {
 
   return (
     <main className="landing">
+      <CinematicGlobe haste={!revealed} />
+      <div className="landing-veil" />
       <div className="landing-card assign-card">
         <p className="landing-kicker">{t("assign.kicker")}</p>
         <h1>{t("season.comingStorm.title")}</h1>
         <p className="landing-ethics">{t("season.comingStorm.blurb")}</p>
-        <p className="assign-country" aria-live="polite">
+        <p className="assign-country" aria-live="polite" key={shown}>
           {title}
         </p>
         {!revealed ? (

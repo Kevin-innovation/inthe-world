@@ -1,9 +1,12 @@
 import Link from "next/link";
+import { CinematicGlobe } from "@/components/stage/CinematicGlobe";
 import { t } from "@/lib/i18n";
 
 export default function LandingPage() {
   return (
     <main className="landing">
+      <CinematicGlobe />
+      <div className="landing-veil" />
       <div className="landing-card">
         <p className="landing-kicker">{t("landing.subtitle")}</p>
         <h1>{t("landing.title")}</h1>
