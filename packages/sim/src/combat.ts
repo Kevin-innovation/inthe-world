@@ -209,6 +209,8 @@ const NEIGHBOR_PAIRS: readonly (readonly [string, string])[] = [
   ["southern_africa", "east_africa"],
   ["southern_africa", "madagascar"],
   ["east_africa", "madagascar"],
+  ["us_east", "britain"],
+  ["libya", "horn_africa"],
   ["us_east", "us_west"],
   ["us_east", "canada"],
   ["us_east", "mexico"],
@@ -394,6 +396,7 @@ export function forceProjection(
   oilSuff: number,
   coastalRegionShare: number,
 ): number {
+  // Pulses are adjacency/contest only; coastal share is the display term, not a landing gate.
   const oil = clamp(finiteOrZero(oilSuff), 0, 1);
   const coastal = clamp(finiteOrZero(coastalRegionShare), 0, 1);
   return (
@@ -651,6 +654,12 @@ export function runCampaignPulses(
   for (const war of wars) {
     if (state.tickIndex % pulsePeriod(war.intensity) !== 0) continue;
 
+    // Snapshot fronts first so a flip cannot open/close later regions in this period.
+    const fronts: {
+      regionId: string;
+      attackerId: CountryId;
+      defenderId: CountryId;
+    }[] = [];
     for (const regionId of regionIds) {
       const region = state.regions[regionId];
       if (!region) continue;
@@ -660,6 +669,18 @@ export function runCampaignPulses(
       const defender = state.nations[region.owner];
       if (!attacker?.alive || !defender?.alive) continue;
       if (attacker.id === defender.id) continue;
+      fronts.push({
+        regionId,
+        attackerId: attId,
+        defenderId: defender.id,
+      });
+    }
+
+    for (const front of fronts) {
+      const region = state.regions[front.regionId];
+      const attacker = state.nations[front.attackerId];
+      const defender = state.nations[front.defenderId];
+      if (!region || !attacker || !defender) continue;
 
       const pulse = resolvePulse({
         paperAtt: attacker.derived.paperStrength,
@@ -700,7 +721,7 @@ export function runCampaignPulses(
         bump(attacker.id, 1);
       } else if (pulse.contestCleared) {
         delete region.contestedBy;
-      } else if (pulse.outcome === "win" || pulse.outcome === "stalemate") {
+      } else if (pulse.outcome !== "loss") {
         region.contestedBy = attacker.id;
       }
 

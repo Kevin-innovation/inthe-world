@@ -416,8 +416,9 @@ function stepNation(
 
   const civEff = 1.0 + 0.55 * (stocks.researchInd / 100);
   const milEff = 1.0 + 0.5 * (stocks.researchMil / 100);
-  const civOut = stocks.civFactories * utilCiv * civEff;
-  const milOut = stocks.milFactories * utilMil * milEff;
+  const regionDamage = clamp(factoryDamageAvg(state, nation.id), 0, 1);
+  const civOut = stocks.civFactories * (1 - regionDamage) * utilCiv * civEff;
+  const milOut = stocks.milFactories * (1 - regionDamage) * utilMil * milEff;
 
   stocks.consumerGoods += civOut * 0.62;
   stocks.munitions += milOut;

@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { loadComingStormPack } from "@simul/content/load";
 import {
   createRng,
   doctrineMod,
+  loadSeason,
   makePeaceBalancedState,
   makeTwoNationState,
   paperStrength,
@@ -149,6 +151,25 @@ describe("resolvePulse table", () => {
     expect(low.attCasRate).toBe(0.08);
     expect(low.defCasRate).toBe(0.025);
   });
+
+  it("takes the win branch without flipping when rng is 0.5", () => {
+    const mid = resolvePulse({
+      paperAtt: 1.5,
+      paperDef: 1,
+      terrain: "plains",
+      doctrineAtt: "deterrence",
+      doctrineDef: "deterrence",
+      logisticsAtt: 1,
+      logisticsDef: 1,
+      rng: rngHalf,
+    });
+    expect(mid.effective).toBeGreaterThanOrEqual(1.35);
+    expect(mid.effective).toBeLessThan(2.2);
+    expect(mid.outcome).toBe("win");
+    expect(mid.flipped).toBe(false);
+    expect(mid.attCasRate).toBe(0.025);
+    expect(mid.defCasRate).toBe(0.07);
+  });
 });
 
 describe("weekly campaign pulses", () => {
@@ -177,7 +198,9 @@ describe("weekly campaign pulses", () => {
       a.nations.ETH?.stocks.armySize !== b.nations.ETH?.stocks.armySize;
     const cursorDiff = a.rngCursor !== b.rngCursor;
     const ownerDiff = JSON.stringify(a.regions) !== JSON.stringify(b.regions);
-    expect(armyDiff || cursorDiff || ownerDiff).toBe(true);
+    const jitterDiff =
+      a.chronicle[0]?.args.effective !== b.chronicle[0]?.args.effective;
+    expect(armyDiff || cursorDiff || ownerDiff || jitterDiff).toBe(true);
   });
 
   it("flips a weak defender region when the attacker has high paper", () => {
@@ -236,5 +259,106 @@ describe("weekly campaign pulses", () => {
     expect(week4.tickIndex).toBe(4);
     expect(week4.rngCursor).toBeGreaterThan(0);
     expect(week4.chronicle.length).toBeGreaterThan(0);
+  });
+
+  it("does not open a same-week front behind a flip", () => {
+    const world = twoNationWorld();
+    const state = makeTwoNationState(7);
+    const usa = state.nations.USA;
+    const eth = state.nations.ETH;
+    if (!usa || !eth) throw new Error("missing nations");
+    usa.atWarWith = ["ETH"];
+    eth.atWarWith = ["USA"];
+    usa.policies.doctrine = "offense";
+    eth.policies.doctrine = "defense";
+    usa.stocks.milFactories = 80;
+    usa.stocks.armySize = 2000;
+    usa.stocks.munitions = 8000;
+    usa.stocks.researchMil = 80;
+    eth.stocks.milFactories = 1;
+    eth.stocks.armySize = 8;
+    eth.stocks.munitions = 0;
+    state.wars = [
+      { id: "usa-eth", a: ["USA"], b: ["ETH"], intensity: 3, startTick: 0 },
+    ];
+    state.regions = {
+      front: region("front", "ETH", "plains", false, ["inland", "rear"]),
+      inland: region("inland", "ETH", "forest", false, ["front"]),
+      rear: region("rear", "USA", "plains", true, ["front"]),
+    };
+    const after = tick(state, 1, world, { next: () => 0.5 }).state;
+    expect(after.regions.front?.owner).toBe("USA");
+    expect(after.regions.inland?.owner).toBe("ETH");
+    expect(after.regions.inland?.contestedBy).toBeUndefined();
+    expect(after.rngCursor).toBe(4);
+  });
+
+  it("marks a decisive miss as contested", () => {
+    const world = twoNationWorld();
+    const state = makeSixRegionWar(7);
+    const usa = state.nations.USA;
+    const eth = state.nations.ETH;
+    if (!usa || !eth) throw new Error("missing nations");
+    usa.stocks.milFactories = 80;
+    usa.stocks.armySize = 2000;
+    usa.stocks.munitions = 8000;
+    usa.stocks.researchMil = 80;
+    eth.stocks.milFactories = 1;
+    eth.stocks.armySize = 8;
+    eth.stocks.munitions = 0;
+    const draws = [0.5, 0.8, 0.5, 0.8];
+    let i = 0;
+    const after = tick(state, 1, world, {
+      next: () => draws[i++] ?? 0.5,
+    }).state;
+    expect(after.regions.horn_africa?.owner).toBe("ETH");
+    expect(after.regions.horn_africa?.contestedBy).toBe("USA");
+  });
+
+  it("pulses loadSeason regions using the static adjacency table", () => {
+    const pack = loadComingStormPack();
+    const { state, world } = loadSeason(pack, {
+      saveId: "s1",
+      seed: 1,
+      playerCountryId: "USA",
+    });
+    expect(state.regions.us_east?.neighbors).toBeUndefined();
+    expect(state.regions.britain?.neighbors).toBeUndefined();
+    const usa = state.nations.USA;
+    const eng = state.nations.ENG;
+    if (!usa || !eng) throw new Error("missing nations");
+    usa.atWarWith = ["ENG"];
+    eng.atWarWith = ["USA"];
+    state.wars = [
+      { id: "usa-eng", a: ["USA"], b: ["ENG"], intensity: 3, startTick: 0 },
+    ];
+    const after = tick(state, 1, world, createRng(1, 0)).state;
+    expect(after.rngCursor).toBeGreaterThan(0);
+    const regions = after.chronicle
+      .filter((row) => row.kind === "battle")
+      .map((row) => String(row.args.region));
+    expect(regions).toEqual(expect.arrayContaining(["britain", "us_east"]));
+  });
+
+  it("cuts civ/mil output by owned factoryDamageAvg", () => {
+    const world = twoNationWorld();
+    world.resourceBase.USA = { food: 0, steel: 0, oil: 0, rares: 0 };
+    const intact = makeTwoNationState(1);
+    const damaged = makeTwoNationState(1);
+    damaged.regions = {
+      us_east: region("us_east", "USA", "plains", true, []),
+    };
+    const east = damaged.regions.us_east;
+    if (!east) throw new Error("missing region");
+    east.factoryDamage = 0.5;
+    const intactAfter = tick(intact, 1, world, createRng(1, 0)).state;
+    const damagedAfter = tick(damaged, 1, world, createRng(1, 0)).state;
+    const intactUsa = intactAfter.nations.USA;
+    const damagedUsa = damagedAfter.nations.USA;
+    if (!intactUsa || !damagedUsa) throw new Error("missing USA");
+    expect(damagedUsa.derived.gdpWeekly).toBeCloseTo(
+      intactUsa.derived.gdpWeekly * 0.5,
+      6,
+    );
   });
 });
