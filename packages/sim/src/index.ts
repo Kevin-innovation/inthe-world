@@ -34,6 +34,16 @@ export type {
 export { createRng, mulberry32, seedFrom, trackRng } from "./rng";
 export type { CursorRng } from "./rng";
 export { addDaysUtc, assertFiniteStocks, cloneGameState, tick } from "./tick";
+export {
+  doctrineMod,
+  forceProjection,
+  paperStrength,
+  resolvePulse,
+  runCampaignPulses,
+  terrainMod,
+  writePaperStrength,
+} from "./combat";
+export type { PaperInput, PulseInput, PulseOutcome, PulseResult } from "./combat";
 export { applyFateFactoryBonus, applyPolicies, costPP } from "./policies";
 export { loadSeason } from "./loadSeason";
 export type { LoadSeasonOpts, SeasonPack } from "./loadSeason";

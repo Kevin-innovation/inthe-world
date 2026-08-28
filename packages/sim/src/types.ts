@@ -130,6 +130,8 @@ export interface RegionState {
   coastal: boolean;
   contestedBy?: CountryId;
   factoryDamage: number; // 0..1
+  // undefined → static adjacency; [] → isolated (contested-only fronts).
+  neighbors?: RegionId[];
 }
 
 export interface War {

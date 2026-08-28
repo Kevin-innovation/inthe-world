@@ -96,5 +96,16 @@ describe("the_coming_storm YAML", () => {
     expect(pack.countries.length).toBeGreaterThanOrEqual(4);
     const ids = pack.countries.map((row) => row.id);
     expect(ids).toEqual(expect.arrayContaining(["USA", "ETH", "GER", "ENG"]));
+    expect(pack.regions.length).toBe(64);
+    expect(new Set(pack.regions.map((row) => row.id)).size).toBe(64);
+    const regionIds = pack.regions.map((row) => row.id);
+    expect(regionIds).toEqual(
+      expect.arrayContaining([
+        "britain",
+        "germany_north",
+        "us_east",
+        "horn_africa",
+      ]),
+    );
   });
 });
