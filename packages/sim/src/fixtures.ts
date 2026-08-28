@@ -246,6 +246,7 @@ export function makeTwoNationState(seed: number): GameState {
   return {
     saveId: "test-two-nations",
     seasonId: "the_coming_storm",
+    contentHash: "00000000",
     seed,
     rngCursor: 0,
     tickIndex: 0,
