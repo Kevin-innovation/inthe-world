@@ -1,89 +1,195 @@
-# Simul
+# inthe-world
 
-Turn-based idle nation sim. Guest play uses an httpOnly cookie — no Google keys required.
+1936년 봄, 나라는 이미 돌아가고 있다. 플레이어는 클릭으로 공장을 짓지 않는다. **정책을 잠그고, 국가라는 기계를 창가에 두듯 바라본다.** 탭을 닫아도 시계는 흐른다. 돌아오면 신문이 쌓여 있다.
 
-The Next.js app lives in `apps/web` and persists guests, saves, and assignment drafts on **Convex** (not SQLite). Simulation math stays in `packages/sim` and is unchanged.
+inthe-world는 브라우저에서 하는 **아이들 국가 시뮬**이다. 장르는 Rebel Inc × Universal Paperclips × Hearts of Iron식 국가 배정에 가깝다. 전술 사단을 굴리는 워게임이 아니라, 동원·공장·국고·안정이 서로를 물어 성장하거나 무너지는 **인과 루프**를 지켜보는 게임이다.
 
-## Setup
+현재 시즌은 **「다가오는 폭풍」** (`the_coming_storm`, 1936년 3월 ~ 1948년 12월) 하나다.
+
+> 이 게임은 20세기 전쟁을 산업·동원 루프로 다룬다. 학살·민족 숙청 같은 메커닉은 없다.
+
+---
+
+## 이 게임이 하려는 것
+
+ Hearts of Iron은 “징병을 올리면 병력이 늘고, 민간 노동이 줄고, 생산이 줄고, 세수가 줄고, 군수가 압박받는다”를 **규칙**으로 처리한다. inthe-world는 같은 고리를 **결과가 따라오는 메커니즘**으로 돌린다.
+
+플레이어가 느끼는 두 극단은 이렇다.
+
+- **성장:** 세율·복지·민수 투자의 균형 → 연구와 효율 ↑ → 세수 ↑ → 공장·인프라 ↑ → 안정과 정치력 ↑.
+- **붕괴:** 징병을 잠그고 떠나면 → 민간 노동 ↓ → 민수·세수 ↓ → 국고가 마르며 공장 가동률 ↓ → 군수 수요는 남고 → 안정·인플레가 무너지며 혁명·점령·실패국가.
+
+미국으로 시작하는 것이 자동 1등이 되지 않게, 점수는 **역사 베이스라인 대비**로 매긴다. 에티오피아가 독립을 지키면 미국 AFK 패권보다 높은 점수가 나올 수 있다.
+
+---
+
+## 한 판이 흘러가는 순서
+
+```text
+랜딩 → 시즌 소개 → 가중 랜덤 국가 배정 → Fate Point
+    → HQ (맵 · 숫자 · 슬라이더 · 신문)
+    → 접속 중에는 주를 넘기며 정책을 만짐
+    → 떠나면 서버가 캡 안에서 나라를 굴림
+    → 복귀하면 섭정 신문을 읽음
+    → 시즌 종료 또는 하드 페일 → 엔딩 원형
+```
+
+### 1. 입장
+
+웹을 연다. 시즌 포스터 **다가오는 폭풍 / The Coming Storm, 1936–1948**과 윤리 한 줄이 보인다. **플레이**를 누르면 게스트 쿠키가 발급된다. Google 로그인 없이 바로 시작할 수 있다.
+
+### 2. 국가 배정
+
+서버가 시즌 국가 테이블에서 **가중 랜덤**으로 한 나라를 고른다. 강대국만 반복해서 나오지 않게, 약소국 쪽 가중치가 더 크다.
+
+현재 콘텐츠 슬라이스에 실린 나라(가중치):
+
+| 국가 | 가중 | 한 줄 |
+|---|---|---|
+| 미국 | 8 | 공장은 넘치지만 고립의 버릇이 남았다. |
+| 독일국 | 8 | 군수는 이미 돌아가고 인접국은 긴장한다. |
+| 영국 | 8 | 본토 공장은 적고 무역과 자치령이 숨을 잇는다. |
+| 에티오피아 | 11 | 공장 두 곳, 강철은 거의 없다. |
+
+배정 화면은 국가가 하나씩 드러나는 시네마틱이다. 기다리지 않으려면 **스킵**하면 된다. 이미 진행 중인 런이 있으면 새로 배정할 수 없다.
+
+### 3. Fate Point
+
+배정 직후 **운명 점수 5점**으로 출발점을 조금 비틀 수 있다. 배율 보너스는 없다. 정수 가산만 된다. 에티오피아를 미국으로 만들 수 없다.
+
+지금 쓸 수 있는 항목:
+
+| 항목 | 비용 | 제한 |
+|---|---|---|
+| 민수 공장 +1 | 2 | 런당 최대 +2 |
+| 군수 공장 +1 | 2 | 런당 최대 +2 |
+| 국가정신 1개 | 3 | 약소국은 강대국 정신 불가 |
+
+확정하면 세이브가 만들어지고 HQ로 들어간다.
+
+### 4. HQ — 기계를 보는 자리
+
+본진은 한 화면이다.
+
+- **맵:** 지역 색은 오너. 분쟁 지역은 빗금. 클릭하면 오너·지형·공장 피해를 본다. 사단을 옮기는 UI는 없다.
+- **숫자:** 민수/군수 공장, 인프라, 인력, 육군, GDP, 국고, 부채, 인플레, 정치력(PP), 안정, 전쟁 지지도.
+- **슬라이더:** 아래 여섯 군. 바꿀 때마다 PP를 쓴다. PP는 매주 쌓이고 상한은 500.
+- **신문:** 전투 펄스, 사건, 섭정이 고른 선택지가 쌓인다.
+
+슬라이더 군:
+
+| 군 | 무엇을 잠그나 |
+|---|---|
+| 경제 | 세율, 민수↔군수 투자, 무역 개방 |
+| 군사 | 징병, 독트린(방어/공격/억제), 군비 |
+| 정치 | 자유, 선전 |
+| 외교 | 개입, 진영 성향 |
+| 사회 | 복지 |
+| 연구 | 군사 / 산업 / 사회 트랙 |
+
+접속 중에는 **다음 주**로 한 주를 넘길 수 있다. 랭크 런의 실제 흐름은 실시간 20분 = 게임 1주다. HQ의 생산 바는 장식이고, 스톡은 주 경계에서만 커밋된다.
+
+### 5. 자리를 비웠을 때
+
+탭을 닫아도 나라는 멈춘 척만 한다. 복귀하면 서버가 경과 시간을 주로 환산해 `tick()`을 돌린다.
+
+- 실시간 20분 = 게임 1주
+- 한 번에 따라잡는 상한 **72시간 = 216주** (약 4년)
+- 클라이언트 시계는 믿지 않는다
+- 자리를 비운 사이 사건이 뜨면 **독트린 자동결재**: 고위험 선택지는 피하고, 지금 슬라이더에 가까운 보수적 답을 고른다
+
+돌아온 뒤 신문에 섭정 보고가 붙는다. “섭정은 당신의 독트린을 따랐지만, 과감한 선택은 하지 않았습니다.”
+
+시즌 전체(~671주)를 한 번에 AFK로 끝낼 수는 없다. 216주 캡 때문에 몇 번은 돌아와야 1948에 닿는다.
+
+### 6. 사건과 전쟁
+
+전술은 없다. 전쟁은 **주간 전역 펄스**다. 페이퍼 전력(공장·병력·탄약·석유·물류의 로그 합성) 비율과 지형·독트린·난수가 신문 스케일 결과를 낸다. 사상, 공장 피격, 지역 오너 변경.
+
+사건은 YAML 팩이다. 지금은 역사 창 8개와 절차 5개가 들어 있다.
+
+- 역사: 라인란트 재무장, 스페인 내전, 안슐루스, 뮌헨, 폴란드 침공, 겨울전쟁, 바르바로사, 진주만
+- 절차: 총파업, 기근, 부채 위기, 풍작, 전쟁 피로
+
+접속 중이면 모달이 뜬다. 선택지는 보통 2~3개이고 PP를 먹을 수 있다.
+
+다른 나라는 같은 `tick()`을 쓰되, 슬라이더는 AI가 매주 조금씩(관성) 옮긴다. 미국은 진주만 전까지 개입이 낮게 묶인다.
+
+### 7. 엔딩
+
+시즌이 끝나거나 나라가 하드 페일하면, 국가별 스크립트가 아니라 **원형(archetype)** 하나가 붙는다. 우선순위 앞에서부터 첫 조건을 고른다.
+
+| 원형 | 의미 |
+|---|---|
+| 병합 | 수도를 잃고 영토가 없다 |
+| 붕괴 | 파산·기근·실패국가 |
+| 혁명 | 체제는 바뀌었지만 나라는 남았다 |
+| 괴뢰 | 살아 있으나 독립이 아니다 |
+| 잔존국 | 독립이되 영토가 크게 줄었다 |
+| 불사조 | 바닥을 찍고 회복했다 |
+| 패권 | 영토·투사력·GDP가 선두권 |
+| 생존 | 독립을 지킨 기본 결말 |
+
+점수는 최종 합성력을 그 나라의 **역사 베이스라인**으로 나눈 비율이 중심이다. 미국 시작이 자동 우승이 되지 않게 하려는 장치다. 로그인 후 리더보드 제출은 아직 이 슬라이스에 없다. 게스트로 한 판을 끝까지 굴리는 것이 지금 플레이 가능한 범위다.
+
+---
+
+## 조작 요약
+
+1. **플레이** → 나라를 배정받는다.  
+2. Fate로 공장·정신을 고르고 **확정**한다.  
+3. HQ에서 슬라이더를 잠근다. PP가 부족하면 적용이 막힌다.  
+4. **다음 주**로 시간을 넘기거나, 창을 닫고 나중에 돌아온다.  
+5. 신문과 맵이 결과를 보여 준다. 사건을 고르거나, 자리를 비웠다면 섭정이 보수적으로 고른다.  
+6. 1948이 되거나 나라가 무너지면 엔딩 원형이 붙는다.
+
+실패해도 런은 이야기가 된다. 붕괴는 빈 패배 화면이 아니라 연대기와 드라마의 재료다.
+
+---
+
+## 개발자
+
+게스트 플레이는 httpOnly 쿠키만으로 동작한다. Google 키는 필요 없다. 세이브는 **Convex**에 둔다. 시뮬 공식은 `packages/sim`의 순수 `tick()`이다.
+
+### 로컬
 
 ```bash
 pnpm install
-```
-
-Copy `.env.example` to `.env.local` once Convex prints your deployment URL.
-
-## Local development
-
-In one terminal, push functions and watch the Convex backend:
-
-```bash
 npx convex dev
 ```
 
-The first run logs in (or starts a local backend) and writes `CONVEX_URL` / `NEXT_PUBLIC_CONVEX_URL` to `.env.local`. If codegen overwrites `convex/_generated/`, that is expected.
-
-In another terminal:
+첫 `npx convex dev`가 `CONVEX_URL` / `NEXT_PUBLIC_CONVEX_URL`을 `.env.local`에 쓴다. `.env.example`을 참고한다. 다른 터미널에서:
 
 ```bash
 pnpm --filter web dev
 ```
 
-Open http://localhost:3000. Guest cookies (`simul_guest`, httpOnly, 180 days) are minted by `POST /api/guest`.
+브라우저: http://localhost:3000
 
-### Scripts
+| 명령 | 역할 |
+|---|---|
+| `pnpm install` | 워크스페이스 설치 |
+| `npx convex dev` | Convex 백엔드 + codegen |
+| `pnpm --filter web dev` | Next.js 앱 |
+| `pnpm test` | sim · db · content · Convex 테스트 |
+| `pnpm typecheck` | 패키지 + `convex/` |
 
-| Command | What it does |
-| --- | --- |
-| `pnpm install` | Install workspace deps |
-| `npx convex dev` | Convex dev loop + codegen |
-| `pnpm --filter web dev` | Next.js app |
-| `pnpm test` | sim + db + content + Convex unit tests |
-| `pnpm typecheck` | all packages + `convex/` |
+### 배포
 
-## Tests
+1. Convex: `npx convex deploy` (CI는 대시보드의 `CONVEX_DEPLOY_KEY`)
+2. Vercel: 저장소 루트, Node 22, `vercel.json`이 `pnpm --filter web build`를 돌린다.
 
-Catch-up week math and assignment weights do not need Convex or SQLite:
+환경 변수: `NEXT_PUBLIC_CONVEX_URL`, `CONVEX_URL` (같은 Convex URL).
 
-- `packages/db/test/catchup.test.ts` — `catchupWeeks` / `planCatchupWeeks` (216 cap, `clientNow` 400)
-- `packages/sim/test/assign.test.ts` — YAML country weights
-- `convex/*.test.ts` — guests, assignment drafts, catch-up (convex-test)
+### 레이아웃
 
-```bash
-pnpm --filter @simul/sim --filter @simul/content --filter @simul/db test
-pnpm test:convex
+```text
+apps/web          Next.js App Router, HQ / 배정 / API
+convex/           게스트 · 세이브 · 배정 초안 · 캐치업
+packages/sim      순수 tick, 배정, 사건, 전투, 엔딩
+packages/content  시즌 YAML (국가 · 지역 · 이벤트)
+packages/db       캐치업 헬퍼 (네이티브 SQLite 없음)
+Planner/          설계 메모
 ```
 
-## Deploy
-
-1. **Convex** (functions + tables)
-
-   ```bash
-   npx convex deploy
-   ```
-
-   Production CI uses `CONVEX_DEPLOY_KEY` from the Convex dashboard (Settings → Deploy Keys). Do not commit it.
-
-2. **Vercel** (Next.js)
-
-   - Root Directory: repository root (this `vercel.json` runs `pnpm --filter web build`)
-   - Node.js 22
-   - Environment variables:
-     - `NEXT_PUBLIC_CONVEX_URL` — production Convex URL (`https://….convex.cloud`)
-     - `CONVEX_URL` — same URL, used by Next server routes
-     - `CONVEX_DEPLOY_KEY` — only if you deploy Convex from Vercel/CI
-
-   Optional Vercel build command that deploys Convex then Next:
-
-   ```bash
-   npx convex deploy --cmd "pnpm --filter web build"
-   ```
-
-Guest play on Vercel still needs no Google OAuth keys.
-
-## Layout
-
-- `apps/web` — Next.js App Router (`/api/guest`, `/api/saves`, `/api/saves/assign`, `/api/saves/:id/catchup`)
-- `convex/` — schema + queries/mutations/actions
-- `packages/sim` — pure tick / assign / events
-- `packages/content` — YAML season pack
-- `packages/db` — catch-up helpers (no native SQLite)
+캐치업 상한은 실시간 72시간 / 216주다. 클라이언트 시계 필드는 거절한다.
