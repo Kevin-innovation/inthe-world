@@ -1,4 +1,5 @@
 import { runCampaignPulses, writePaperStrength } from "./combat";
+import { resolveEnding } from "./endings";
 import { trackRng } from "./rng";
 import type {
   CountryId,
@@ -13,6 +14,8 @@ import type {
   TickResult,
   WorldView,
 } from "./types";
+
+const COMING_STORM_END: GameDate = { year: 1948, month: 12, day: 31 };
 
 const RESOURCE_KEYS = ["food", "steel", "oil", "rares"] as const;
 const RESOURCE_PRICE: Record<(typeof RESOURCE_KEYS)[number], number> = {
@@ -91,6 +94,12 @@ export function addDaysUtc(date: GameDate, days: number): GameDate {
     month: d.getUTCMonth() + 1,
     day: d.getUTCDate(),
   };
+}
+
+function dateGte(a: GameDate, b: GameDate): boolean {
+  if (a.year !== b.year) return a.year > b.year;
+  if (a.month !== b.month) return a.month > b.month;
+  return a.day >= b.day;
 }
 
 function oilDoctrineMul(doctrine: Doctrine): number {
@@ -592,6 +601,15 @@ export function tick(
 
   next.rngCursor = tracked.cursor();
   assertFiniteStocks(next);
+
+  // Season calendar and hard-fail both freeze here so catch-up cannot overshoot.
+  if (dateGte(next.date, COMING_STORM_END)) {
+    next.status = "ended";
+  }
+  if (next.status === "ended" && next.ending === undefined) {
+    next.ending = resolveEnding(next, next.playerCountryId);
+  }
+
   return {
     state: next,
     newspapers,

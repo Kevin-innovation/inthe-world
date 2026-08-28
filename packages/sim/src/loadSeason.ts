@@ -218,6 +218,17 @@ export function loadSeason(
     };
   }
 
+  // Snapshot 1936 counts; rump/phoenix compare against start, not the ending map.
+  for (const nation of Object.values(nations)) {
+    let owned = 0;
+    for (const region of Object.values(regions)) {
+      if (region.owner === nation.id) owned += 1;
+    }
+    nation.runStats.startRegions = owned;
+    nation.runStats.peakRegions = owned;
+    nation.runStats.troughRegions = owned;
+  }
+
   const state: GameState = {
     saveId: opts.saveId,
     seasonId: pack.id,
