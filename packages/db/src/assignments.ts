@@ -1,3 +1,4 @@
+/** In-memory drafts for unit tests. Production assignment rows live in Convex. */
 export type AssignmentDraft = {
   id: string;
   guestId: string;
@@ -6,6 +7,7 @@ export type AssignmentDraft = {
   seed: number;
   createdAt: number;
   consumed: boolean;
+  lore?: string;
 };
 
 const globalForAssign = globalThis as unknown as {

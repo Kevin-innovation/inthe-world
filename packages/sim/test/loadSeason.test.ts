@@ -122,10 +122,11 @@ describe("loadSeason", () => {
       seed: 1,
       playerCountryId: "USA",
     });
-    expect(world.tensionSchedule).toEqual(pack.tensionSchedule);
-    expect(world.tensionSchedule).not.toBe(pack.tensionSchedule);
-    expect(world.tensionSchedule[0]).not.toBe(pack.tensionSchedule[0]);
-    const first = world.tensionSchedule[0];
+    const schedule = world.tensionSchedule;
+    expect(schedule).toEqual(pack.tensionSchedule);
+    expect(schedule).not.toBe(pack.tensionSchedule);
+    expect(schedule?.[0]).not.toBe(pack.tensionSchedule[0]);
+    const first = schedule?.[0];
     if (!first) throw new Error("missing schedule point");
     first.value = 99;
     expect(pack.tensionSchedule[0]?.value).not.toBe(99);

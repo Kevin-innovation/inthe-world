@@ -1,17 +1,7 @@
 import { NextResponse } from "next/server";
 import { loadComingStormPack } from "@simul/content/load";
-import {
-  confirmAssignment,
-  ensureGuest,
-  getAssignment,
-  getDefaultDb,
-  withGuestLock,
-} from "@simul/db";
-import {
-  applyFateSpends,
-  countryWeights,
-  loadSeason,
-} from "@simul/sim";
+import { applyFateSpends, countryWeights, loadSeason } from "@simul/sim";
+import { api, getConvex } from "@/lib/convex-server";
 import { readGuestCookie, readJsonBody, setGuestCookie } from "@/lib/guest-cookie";
 
 export const runtime = "nodejs";
@@ -47,72 +37,60 @@ export async function POST(request: Request) {
     : undefined;
   const ranked = body.ranked === false ? false : true;
 
-  const handle = getDefaultDb();
-  const nowMs = Date.now();
-  const { guestId } = ensureGuest(handle.db, await readGuestCookie(), nowMs);
-  const pack = loadComingStormPack();
-  const outcome = await withGuestLock(guestId, () => {
-    const draft = getAssignment(assignmentId);
-    if (!draft || draft.guestId !== guestId || draft.consumed) {
-      return { type: "missing" as const };
-    }
-    const loaded = loadSeason(pack, {
-      saveId: assignmentId,
-      seed: draft.seed,
-      playerCountryId: draft.countryId,
-    });
-    loaded.state.ranked = ranked;
-    const fate = applyFateSpends(
-      loaded.state,
-      draft.countryId,
-      countryWeights(pack.countries),
-      { civDelta, milDelta, spiritId, spiritTags },
-    );
-    if (fate.error) {
-      return { type: "fate" as const, error: fate.error };
-    }
-    const confirmed = confirmAssignment(handle.db, {
-      guestId,
-      assignmentId,
-      state: fate.state,
-      nowMs,
-    });
-    if (!confirmed.ok) {
-      return { type: "denied" as const, confirmed };
-    }
-    return {
-      type: "ok" as const,
-      save: confirmed.save,
-      fateRemaining: fate.fateRemaining,
-    };
+  const convex = getConvex();
+  const { guestId } = await convex.mutation(api.guests.ensure, {
+    cookieId: await readGuestCookie(),
   });
-
-  if (outcome.type === "missing") {
+  const pack = loadComingStormPack();
+  const draft = await convex.query(api.assignments.get, {
+    assignmentId,
+    guestId,
+  });
+  if (!draft || draft.consumed) {
     const res = NextResponse.json({ error: "assignment_not_found" }, { status: 404 });
     setGuestCookie(res, guestId);
     return res;
   }
-  if (outcome.type === "fate") {
-    const res = NextResponse.json({ error: outcome.error }, { status: 400 });
+
+  const loaded = loadSeason(pack, {
+    saveId: assignmentId,
+    seed: draft.seed,
+    playerCountryId: draft.countryId,
+  });
+  loaded.state.ranked = ranked;
+  const fate = applyFateSpends(
+    loaded.state,
+    draft.countryId,
+    countryWeights(pack.countries),
+    { civDelta, milDelta, spiritId, spiritTags },
+  );
+  if (fate.error) {
+    const res = NextResponse.json({ error: fate.error }, { status: 400 });
     setGuestCookie(res, guestId);
     return res;
   }
-  if (outcome.type === "denied") {
+
+  const confirmed = await convex.mutation(api.saves.confirm, {
+    guestId,
+    assignmentId,
+    stateJson: JSON.stringify(fate.state),
+  });
+  if (!confirmed.ok) {
     const res = NextResponse.json(
-      outcome.confirmed.error === "active_run"
+      confirmed.error === "active_run"
         ? {
             error: "active_run",
-            saveId: outcome.confirmed.saveId,
-            countryId: outcome.confirmed.countryId,
+            saveId: confirmed.saveId,
+            countryId: confirmed.countryId,
           }
-        : { error: outcome.confirmed.error },
-      { status: outcome.confirmed.httpStatus },
+        : { error: confirmed.error },
+      { status: confirmed.httpStatus },
     );
     setGuestCookie(res, guestId);
     return res;
   }
 
-  const save = outcome.save;
+  const save = confirmed.save;
   const res = NextResponse.json({
     id: save.id,
     guestId: save.guestId,
@@ -123,7 +101,7 @@ export async function POST(request: Request) {
     lastTickAt: new Date(save.lastTickAt).toISOString(),
     status: save.status,
     ranked: save.ranked,
-    fateRemaining: outcome.fateRemaining,
+    fateRemaining: fate.fateRemaining,
   });
   setGuestCookie(res, guestId);
   return res;

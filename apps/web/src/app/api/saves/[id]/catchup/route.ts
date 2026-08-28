@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDefaultDb, runCatchup } from "@simul/db";
+import { api, getConvex } from "@/lib/convex-server";
 import {
   readGuestCookie,
   readJsonBody,
@@ -8,6 +8,7 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function POST(
   request: Request,
@@ -19,11 +20,10 @@ export async function POST(
   }
   const { id } = await context.params;
   const guestId = await readGuestCookie();
-  const result = runCatchup(getDefaultDb(), {
+  const result = await getConvex().action(api.catchup.run, {
     saveId: id,
     guestId,
     body: parsed.body,
-    nowMs: Date.now(),
   });
   const res = NextResponse.json(result.body, { status: result.httpStatus });
   if (result.httpStatus === 200 && guestId) {

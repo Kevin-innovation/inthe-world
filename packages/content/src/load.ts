@@ -1,39 +1,15 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parse } from "yaml";
 import {
   baselinesFileSchema,
-  countriesFileSchema,
-  eventsFileSchema,
-  regionsFileSchema,
   seasonDefinitionSchema,
-  seasonPackSchema,
   type BaselinesFile,
   type SeasonPack,
 } from "./schema";
+import { parseYaml, seasonPackFromYaml } from "./fromYaml";
 
-export function parseYaml(text: string): unknown {
-  return parse(text) as unknown;
-}
-
-export function seasonPackFromYaml(args: {
-  seasonYaml: string;
-  countriesYaml: string;
-  regionsYaml?: string;
-  eventsYamls?: string[];
-}): SeasonPack {
-  const season = seasonDefinitionSchema.parse(parseYaml(args.seasonYaml));
-  const countries = countriesFileSchema.parse(parseYaml(args.countriesYaml));
-  const regions =
-    args.regionsYaml === undefined
-      ? []
-      : regionsFileSchema.parse(parseYaml(args.regionsYaml));
-  const events = (args.eventsYamls ?? []).flatMap((text) =>
-    eventsFileSchema.parse(parseYaml(text)),
-  );
-  return seasonPackSchema.parse({ ...season, countries, regions, events });
-}
+export { parseYaml, seasonPackFromYaml } from "./fromYaml";
 
 function readEventYamls(root: string, eventPack: string[]): string[] {
   return eventPack.map((rel) => readFileSync(join(root, ...rel.split("/")), "utf8"));

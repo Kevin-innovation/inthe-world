@@ -7,8 +7,19 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "pnpm --filter @simul/sim --filter @simul/db --filter @simul/content test",
-    "typecheck": "pnpm -r typecheck",
-    "dev": "pnpm --filter web dev"
+    "test": "pnpm --filter @simul/sim --filter @simul/db --filter @simul/content test && pnpm test:convex",
+    "test:convex": "vitest run --config vitest.convex.config.ts",
+    "typecheck": "pnpm -r typecheck && tsc --noEmit -p convex/tsconfig.json",
+    "dev": "pnpm --filter web dev",
+    "convex:dev": "convex dev"
+  },
+  "dependencies": {
+    "convex": "1.45.0"
+  },
+  "devDependencies": {
+    "@edge-runtime/vm": "5.0.0",
+    "convex-test": "0.0.56",
+    "typescript": "5.8.3",
+    "vitest": "3.2.4"
   }
 }
