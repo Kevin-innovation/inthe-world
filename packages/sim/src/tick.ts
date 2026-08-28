@@ -24,32 +24,13 @@ const RESOURCE_PRICE: Record<(typeof RESOURCE_KEYS)[number], number> = {
 const CIV_FACTORY_PTS = 90;
 const MIL_FACTORY_PTS = 110;
 const INFRA_PTS = 70;
+const CIV_INFRA_SHARE = 0.25;
 
 function clamp(x: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, x));
 }
 
-function cloneState(state: GameState): GameState {
-  return JSON.parse(JSON.stringify(state)) as GameState;
-}
-
-function flagNumber(
-  flags: Record<string, boolean | number>,
-  key: string,
-): number {
-  const value = flags[key];
-  return typeof value === "number" && Number.isFinite(value) ? value : 0;
-}
-
-function flagOn(
-  flags: Record<string, boolean | number>,
-  key: string,
-): boolean {
-  const value = flags[key];
-  return value === true || value === 1;
-}
-
-function assertFiniteStocks(state: GameState): void {
+export function assertFiniteStocks(state: GameState): void {
   for (const id of Object.keys(state.nations).sort()) {
     const nation = state.nations[id];
     if (!nation) continue;
@@ -67,7 +48,32 @@ function assertFiniteStocks(state: GameState): void {
     if (!Number.isFinite(nation.milBuildPts)) {
       throw new Error(`error_tick_nan: ${id}.milBuildPts`);
     }
+    if (!Number.isFinite(nation.infraBuildPts)) {
+      throw new Error(`error_tick_nan: ${id}.infraBuildPts`);
+    }
   }
+}
+
+export function cloneGameState(state: GameState): GameState {
+  const cloned = JSON.parse(JSON.stringify(state)) as GameState;
+  assertFiniteStocks(cloned);
+  return cloned;
+}
+
+function flagNumber(
+  flags: Record<string, boolean | number>,
+  key: string,
+): number {
+  const value = flags[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function flagOn(
+  flags: Record<string, boolean | number>,
+  key: string,
+): boolean {
+  const value = flags[key];
+  return value === true || value === 1;
 }
 
 export function addDaysUtc(date: GameDate, days: number): GameDate {
@@ -144,15 +150,12 @@ function spendBuildPts(nation: NationState): void {
     nation.milBuildPts -= MIL_FACTORY_PTS;
     stocks.milFactories += 1;
   }
-  let boughtCiv = 0;
   while (nation.civBuildPts >= CIV_FACTORY_PTS) {
     nation.civBuildPts -= CIV_FACTORY_PTS;
     stocks.civFactories += 1;
-    boughtCiv += 1;
   }
-  // Remainder after a factory buy only — spending 70 at 70–89 pts would starve civ factories.
-  if (boughtCiv > 0 && stocks.infra < 100 && nation.civBuildPts >= INFRA_PTS) {
-    nation.civBuildPts -= INFRA_PTS;
+  while (stocks.infra < 100 && nation.infraBuildPts >= INFRA_PTS) {
+    nation.infraBuildPts -= INFRA_PTS;
     stocks.infra += 1;
   }
 }
@@ -221,7 +224,7 @@ function updateRunStats(nation: NationState): void {
 function stepHardFails(
   nation: NationState,
   state: GameState,
-  suffFood: number,
+  foodHarvest: number,
 ): void {
   const stocks = nation.stocks;
   const flags = nation.flags;
@@ -240,7 +243,8 @@ function stepHardFails(
     flags.h3Weeks = 0;
   }
 
-  if (stocks.food <= 0 && suffFood <= 0) {
+  // Empty post-consume granary is famine only when this week's harvest was also 0.
+  if (stocks.food <= 0 && foodHarvest <= 0) {
     flags.h4Weeks = flagNumber(flags, "h4Weeks") + 1;
   } else {
     flags.h4Weeks = 0;
@@ -274,8 +278,11 @@ function stepHardFails(
   }
 
   if (flagNumber(flags, "h1Weeks") >= 4) {
-    const peakArmy = Math.max(nation.runStats.peakArmy, stocks.armySize);
-    if (stocks.warSupport < 30 && stocks.armySize < 0.4 * peakArmy) {
+    const startArmy =
+      nation.runStats.startArmy > 0
+        ? nation.runStats.startArmy
+        : stocks.armySize;
+    if (stocks.warSupport < 30 && stocks.armySize < 0.4 * startArmy) {
       collapseNation(state, nation);
       return;
     }
@@ -387,7 +394,6 @@ function stepNation(
     flagOn(nation.flags, "default") || nation.spirits.includes("default")
       ? 0.5
       : 1;
-  // cashF multiplies both civilian and military util
   const utilCiv = clamp(
     laborFactor * resSuff * cashF * invFCiv * demFCiv * stabF * bankruptF,
     0.05,
@@ -457,7 +463,9 @@ function stepNation(
   const interest = stocks.debt * weeklyInterestRate;
 
   const investPool = Math.max(0, tax * 0.18 * cashF);
-  nation.civBuildPts += investPool * (1 - s.industrialFocus / 100);
+  const civShare = 1 - s.industrialFocus / 100;
+  nation.civBuildPts += investPool * civShare * (1 - CIV_INFRA_SHARE);
+  nation.infraBuildPts += investPool * civShare * CIV_INFRA_SHARE;
   nation.milBuildPts += investPool * (s.industrialFocus / 100);
   spendBuildPts(nation);
 
@@ -539,7 +547,7 @@ function stepNation(
 
   // 15. Hard fails + runStats
   updateRunStats(nation);
-  stepHardFails(nation, state, suff.food);
+  stepHardFails(nation, state, extract.food);
 }
 
 export function tick(
@@ -550,13 +558,11 @@ export function tick(
 ): TickResult {
   // 0. Ranked ended runs do not advance.
   if (state.ranked && state.status === "ended") {
-    const frozen = cloneState(state);
-    assertFiniteStocks(frozen);
+    const frozen = cloneGameState(state);
     return { state: frozen, newspapers: [], interrupted: false, dtWeeks: 0 };
   }
 
-  const next = cloneState(state);
-  assertFiniteStocks(next);
+  const next = cloneGameState(state);
   // Production is deterministic; only rng.next() through this wrap advances rngCursor.
   const tracked = trackRng(rng, next.rngCursor);
 

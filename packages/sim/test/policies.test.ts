@@ -45,6 +45,38 @@ describe("policy PP cost", () => {
     expect(poor.state.nations.USA?.policies.doctrine).toBe("defense");
     expect(poor.state.nations.USA?.stocks.politicalPower).toBe(0);
   });
+
+  it("does not bill PP to clamp unpatched out-of-range sliders", () => {
+    const state = makeTwoNationState(1);
+    const usa = state.nations.USA;
+    if (!usa) throw new Error("missing USA");
+    usa.policies.taxRate = 150;
+    usa.stocks.politicalPower = 200;
+    const result = applyPolicies(state, "USA", {});
+    expect(result.error).toBeUndefined();
+    expect(result.spent).toBe(0);
+    expect(result.state.nations.USA?.policies.taxRate).toBe(150);
+    expect(result.state.nations.USA?.stocks.politicalPower).toBe(200);
+  });
+
+  it("rejects non-finite stocks instead of cloning NaN to null", () => {
+    const state = makeTwoNationState(1);
+    const usa = state.nations.USA;
+    if (!usa) throw new Error("missing USA");
+    usa.stocks.politicalPower = Number.NaN;
+    expect(() => applyPolicies(state, "USA", { taxRate: 30 })).toThrow(
+      /error_tick_nan: USA\.politicalPower/,
+    );
+    expect(Number.isNaN(state.nations.USA?.stocks.politicalPower)).toBe(true);
+
+    const inf = makeTwoNationState(1);
+    const infUsa = inf.nations.USA;
+    if (!infUsa) throw new Error("missing USA");
+    infUsa.stocks.politicalPower = Number.POSITIVE_INFINITY;
+    expect(() => applyFateFactoryBonus(inf, "ETH", 1, 0)).toThrow(
+      /error_tick_nan: USA\.politicalPower/,
+    );
+  });
 });
 
 describe("fate factory cap", () => {

@@ -1,3 +1,4 @@
+import { cloneGameState } from "./tick";
 import type {
   CountryId,
   Doctrine,
@@ -33,10 +34,6 @@ function clamp(x: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, x));
 }
 
-function cloneState(state: GameState): GameState {
-  return JSON.parse(JSON.stringify(state)) as GameState;
-}
-
 function flagNumber(
   flags: Record<string, boolean | number>,
   key: string,
@@ -50,26 +47,20 @@ function clampSlider(key: (typeof NUMERIC_SLIDERS)[number], value: number): numb
   return clamp(value, 0, 100);
 }
 
-function clampPolicies(policies: PolicySliders): PolicySliders {
-  const next: PolicySliders = { ...policies };
-  for (const key of NUMERIC_SLIDERS) {
-    const value = next[key];
-    next[key] = Number.isFinite(value) ? clampSlider(key, value) : policies[key];
-  }
-  if (!DOCTRINES.has(next.doctrine)) {
-    next.doctrine = policies.doctrine;
-  }
-  return next;
-}
-
-export function costPP(old: PolicySliders, next: PolicySliders): number {
+export function costPP(
+  old: PolicySliders,
+  next: PolicySliders,
+  partial?: Partial<PolicySliders>,
+): number {
   let cost = 0;
   for (const key of NUMERIC_SLIDERS) {
+    if (partial && partial[key] === undefined) continue;
     const delta = Math.abs(next[key] - old[key]);
     if (delta === 0) continue;
     cost += 15 * (delta / 10);
   }
-  if (next.doctrine !== old.doctrine) {
+  const doctrineRequested = !partial || partial.doctrine !== undefined;
+  if (doctrineRequested && next.doctrine !== old.doctrine) {
     cost += 40;
   }
   return cost;
@@ -80,25 +71,24 @@ export function applyPolicies(
   countryId: CountryId,
   partial: Partial<PolicySliders>,
 ): { state: GameState; spent: number; error?: string } {
-  const cloned = cloneState(state);
+  const cloned = cloneGameState(state);
   const nation = cloned.nations[countryId];
   if (!nation) {
     return { state: cloned, spent: 0, error: "unknown_country" };
   }
 
-  const merged: PolicySliders = { ...nation.policies };
+  const applied: PolicySliders = { ...nation.policies };
   for (const key of NUMERIC_SLIDERS) {
     const incoming = partial[key];
     if (incoming === undefined) continue;
     if (!Number.isFinite(incoming)) continue;
-    merged[key] = incoming;
+    applied[key] = clampSlider(key, incoming);
   }
   if (partial.doctrine !== undefined && DOCTRINES.has(partial.doctrine)) {
-    merged.doctrine = partial.doctrine;
+    applied.doctrine = partial.doctrine;
   }
 
-  const applied = clampPolicies(merged);
-  const spent = costPP(nation.policies, applied);
+  const spent = costPP(nation.policies, applied, partial);
   if (spent > nation.stocks.politicalPower) {
     return { state: cloned, spent: 0, error: "insufficient_pp" };
   }
@@ -114,7 +104,7 @@ export function applyFateFactoryBonus(
   civDelta: number,
   milDelta: number,
 ): { state: GameState; appliedCiv: number; appliedMil: number; error?: string } {
-  const cloned = cloneState(state);
+  const cloned = cloneGameState(state);
   if (!Number.isInteger(civDelta) || !Number.isInteger(milDelta)) {
     return {
       state: cloned,

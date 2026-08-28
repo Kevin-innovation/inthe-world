@@ -37,7 +37,15 @@ describe("USA_1936_peace_balanced growth spiral", () => {
     expect(usa0.policies).toEqual(USA_1936_PEACE_BALANCED);
 
     const startGdp = usa0.stocks.gdp;
-    const after = runWeeks(start, world, 104);
+    const startCiv = usa0.stocks.civFactories;
+    const startInfra = usa0.stocks.infra;
+
+    const week1 = tick(start, 1, world, createRng(start.seed, start.rngCursor)).state;
+    const usa1 = week1.nations.USA;
+    if (!usa1) throw new Error("missing USA");
+    expect(usa1.stocks.gdp).toBeGreaterThan(startGdp * 1.15);
+
+    const after = runWeeks(week1, world, 103);
     const usa = after.nations.USA;
     if (!usa) throw new Error("missing USA");
 
@@ -45,9 +53,24 @@ describe("USA_1936_peace_balanced growth spiral", () => {
     expect(usa.alive).toBe(true);
     expect(usa.stocks.gdp).toBeGreaterThan(startGdp * 1.15);
     expect(usa.stocks.stability).toBeGreaterThanOrEqual(50);
+    expect(usa.stocks.civFactories).toBeGreaterThan(startCiv);
+    expect(usa.stocks.infra).toBeGreaterThan(startInfra);
     for (const value of Object.values(usa.stocks)) {
       expect(Number.isFinite(value)).toBe(true);
     }
+  });
+
+  it("spends leftover infra pts at the 70-pt threshold", () => {
+    const world = twoNationWorld();
+    const start = makePeaceBalancedState(3);
+    const usa0 = start.nations.USA;
+    if (!usa0) throw new Error("missing USA");
+    usa0.infraBuildPts = 70;
+    const after = tick(start, 1, world, createRng(start.seed, 0)).state;
+    const usa = after.nations.USA;
+    if (!usa) throw new Error("missing USA");
+    expect(usa.stocks.infra).toBe(usa0.stocks.infra + 1);
+    expect(usa.infraBuildPts).toBeLessThan(70);
   });
 
   it("conscription 80 mid-run lowers laborFactor versus the balanced clone", () => {

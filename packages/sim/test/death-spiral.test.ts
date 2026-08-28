@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   createRng,
   makeMiniWarOvermobilize,
+  makeTwoNationState,
   miniWarWorld,
   tick,
+  twoNationWorld,
   type GameState,
   type NationState,
 } from "../src/index";
@@ -25,6 +27,7 @@ function assertFiniteNation(nation: NationState): void {
   expect(Number.isFinite(nation.derived.utilMil)).toBe(true);
   expect(Number.isFinite(nation.civBuildPts)).toBe(true);
   expect(Number.isFinite(nation.milBuildPts)).toBe(true);
+  expect(Number.isFinite(nation.infraBuildPts)).toBe(true);
 }
 
 function isSpiralHit(nation: NationState): boolean {
@@ -70,3 +73,91 @@ describe("MINI_war_overmobilize death spiral", () => {
     expect(hit).toBe(true);
   });
 });
+
+describe("H1 uses start army, not peak", () => {
+  function prepEth(armySize: number): GameState {
+    const state = makeTwoNationState(5);
+    const eth = state.nations.ETH;
+    if (!eth) throw new Error("missing ETH");
+    eth.stocks.stability = 0;
+    eth.stocks.inflation = 80;
+    eth.stocks.warSupport = 10;
+    eth.stocks.armySize = armySize;
+    eth.policies.conscription = 0;
+    eth.policies.welfare = 0;
+    eth.policies.taxRate = 50;
+    eth.runStats.startArmy = 80;
+    eth.runStats.peakArmy = 400;
+    return state;
+  }
+
+  it("revolts when army is above 40% of start", () => {
+    let current = prepEth(80);
+    const world = twoNationWorld();
+    const rng = createRng(current.seed, 0);
+    for (let i = 0; i < 4; i++) {
+      current = tick(current, 1, world, rng).state;
+    }
+    const eth = current.nations.ETH;
+    if (!eth) throw new Error("missing ETH");
+    expect(eth.alive).toBe(true);
+    expect(eth.runStats.hadRevolution).toBe(true);
+    expect(eth.stocks.stability).toBe(25);
+  });
+
+  it("collapses when army is below 40% of start", () => {
+    let current = prepEth(20);
+    const world = twoNationWorld();
+    const rng = createRng(current.seed, 0);
+    for (let i = 0; i < 4; i++) {
+      current = tick(current, 1, world, rng).state;
+    }
+    const eth = current.nations.ETH;
+    if (!eth) throw new Error("missing ETH");
+    expect(eth.alive).toBe(false);
+    expect(eth.runStats.collapseWeek).toBe(4);
+  });
+});
+
+describe("H4 famine is post-consume food with no harvest", () => {
+  it("collapses after 8 weeks of empty granary and zero harvest", () => {
+    const world = twoNationWorld();
+    world.resourceBase.ETH = { food: 0, steel: 0.5, oil: 1, rares: 1 };
+    let current = makeTwoNationState(8);
+    const eth0 = current.nations.ETH;
+    if (!eth0) throw new Error("missing ETH");
+    eth0.stocks.food = 0;
+    eth0.policies.tradeOpenness = 0;
+    eth0.stocks.treasury = 0;
+    const rng = createRng(current.seed, 0);
+    for (let i = 0; i < 8; i++) {
+      current = tick(current, 1, world, rng).state;
+      const eth = current.nations.ETH;
+      if (!eth) throw new Error("missing ETH");
+      if (i < 7) {
+        expect(eth.alive).toBe(true);
+        expect(flagNumber(eth.flags, "h4Weeks")).toBe(i + 1);
+      }
+    }
+    const eth = current.nations.ETH;
+    if (!eth) throw new Error("missing ETH");
+    expect(eth.alive).toBe(false);
+  });
+
+  it("does not count harvest-and-eat-all as famine", () => {
+    const world = twoNationWorld();
+    let current = makeTwoNationState(8);
+    const eth0 = current.nations.ETH;
+    if (!eth0) throw new Error("missing ETH");
+    eth0.policies.tradeOpenness = 0;
+    const rng = createRng(current.seed, 0);
+    for (let i = 0; i < 8; i++) {
+      current = tick(current, 1, world, rng).state;
+    }
+    const eth = current.nations.ETH;
+    if (!eth) throw new Error("missing ETH");
+    expect(eth.alive).toBe(true);
+    expect(flagNumber(eth.flags, "h4Weeks")).toBe(0);
+  });
+});
+

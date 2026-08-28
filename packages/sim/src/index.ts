@@ -33,7 +33,7 @@ export type {
 
 export { createRng, mulberry32, seedFrom, trackRng } from "./rng";
 export type { CursorRng } from "./rng";
-export { addDaysUtc, tick } from "./tick";
+export { addDaysUtc, assertFiniteStocks, cloneGameState, tick } from "./tick";
 export { applyFateFactoryBonus, applyPolicies, costPP } from "./policies";
 export {
   DEFAULT_POLICIES,
