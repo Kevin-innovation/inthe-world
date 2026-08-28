@@ -8,6 +8,7 @@
   },
   "scripts": {
     "test": "pnpm --filter @simul/sim --filter @simul/content test",
-    "typecheck": "pnpm --filter @simul/sim --filter @simul/content typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "dev": "pnpm --filter web dev"
   }
 }
