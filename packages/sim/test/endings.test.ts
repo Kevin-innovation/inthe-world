@@ -151,9 +151,13 @@ describe("tick runStats extrema", () => {
     const rng = createRng(state.seed, state.rngCursor);
     state = tick(state, 1, world, rng).state;
     const afterFirst = nation(state, "ETH");
-    expect(afterFirst.runStats.peakComposite).toBeGreaterThan(0);
-    expect(afterFirst.runStats.troughComposite).toBeGreaterThan(0);
     const peakAfterFirst = afterFirst.runStats.peakComposite;
+    const troughAfterFirst = afterFirst.runStats.troughComposite;
+    if (peakAfterFirst === undefined || troughAfterFirst === undefined) {
+      throw new Error("missing composite extrema");
+    }
+    expect(peakAfterFirst).toBeGreaterThan(0);
+    expect(troughAfterFirst).toBeGreaterThan(0);
     expect(afterFirst.runStats.troughRegions).toBe(4);
 
     afterFirst.stocks.gdp = Math.max(afterFirst.stocks.gdp * 0.2, 0.5);
@@ -166,12 +170,43 @@ describe("tick runStats extrema", () => {
 
     state = tick(state, 1, world, rng).state;
     const afterLoss = nation(state, "ETH");
+    const peakAfterLoss = afterLoss.runStats.peakComposite;
+    const troughAfterLoss = afterLoss.runStats.troughComposite;
+    if (peakAfterLoss === undefined || troughAfterLoss === undefined) {
+      throw new Error("missing composite extrema");
+    }
     expect(afterLoss.runStats.troughRegions).toBe(1);
-    expect(afterLoss.runStats.troughComposite).toBeLessThan(
-      afterLoss.runStats.peakComposite,
-    );
-    expect(afterLoss.runStats.peakComposite).toBeGreaterThanOrEqual(
-      peakAfterFirst,
-    );
+    expect(troughAfterLoss).toBeLessThan(peakAfterLoss);
+    expect(peakAfterLoss).toBeGreaterThanOrEqual(peakAfterFirst);
+  });
+
+  it("keeps troughRegions at 0 after recapture", () => {
+    const world = twoNationWorld();
+    let state = makeTwoNationState(3);
+    const eth0 = nation(state, "ETH");
+    eth0.runStats.startRegions = 4;
+    eth0.runStats.peakRegions = 4;
+    eth0.runStats.troughRegions = 4;
+    paintOwned(state, "ETH", 4, true);
+
+    const rng = createRng(state.seed, state.rngCursor);
+    state = tick(state, 1, world, rng).state;
+
+    for (const region of Object.values(state.regions)) {
+      if (region.owner === "ETH") {
+        region.owner = "USA";
+        region.controller = "USA";
+      }
+    }
+    state = tick(state, 1, world, rng).state;
+    expect(nation(state, "ETH").runStats.troughRegions).toBe(0);
+
+    paintOwned(state, "ETH", 4, true);
+    state = tick(state, 1, world, rng).state;
+    const recovered = nation(state, "ETH");
+    expect(recovered.runStats.troughRegions).toBe(0);
+    const peakRegions = recovered.runStats.peakRegions;
+    if (peakRegions === undefined) throw new Error("missing peakRegions");
+    expect(peakRegions).toBeGreaterThanOrEqual(4);
   });
 });

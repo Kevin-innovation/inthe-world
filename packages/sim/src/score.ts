@@ -68,14 +68,14 @@ function dramaBonusOf(
 ): number {
   if (endingId === "phoenix") return 0.6;
   if (nation.runStats.hadCapitulated && nation.alive) return 0.4;
+  const storedPeak = nation.runStats.peakComposite;
+  const storedTrough = nation.runStats.troughComposite;
   const peak =
-    nation.runStats.peakComposite > 0
-      ? Math.max(nation.runStats.peakComposite, composite)
-      : composite;
+    storedPeak === undefined ? composite : Math.max(storedPeak, composite);
   const trough =
-    nation.runStats.troughComposite > 0
-      ? Math.min(nation.runStats.troughComposite, composite)
-      : composite;
+    storedTrough === undefined
+      ? composite
+      : Math.min(storedTrough, composite);
   const swing = clamp((peak - trough) / Math.max(peak, 1), 0, 1);
   return 0.2 * swing;
 }

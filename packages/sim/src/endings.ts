@@ -280,7 +280,9 @@ function troughRegionRatio(nation: NationState, state: GameState): number {
   const start = startRegionsOf(nation, state);
   // No start map: 0/0 must not count as a phoenix trough.
   if (start <= 0) return 1;
-  return nation.runStats.troughRegions / start;
+  const trough = nation.runStats.troughRegions;
+  if (trough === undefined) return 1;
+  return trough / start;
 }
 
 function matchesAnnexed(state: GameState, player: NationState): boolean {

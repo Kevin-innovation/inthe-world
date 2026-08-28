@@ -238,10 +238,13 @@ function updateRegionExtrema(nation: NationState, state: GameState): void {
   const start = rs.startRegions;
   // Empty two-nation maps have no territory; 0/0 is not a phoenix trough.
   if (start <= 0 && owned <= 0) return;
-  rs.peakRegions = Math.max(rs.peakRegions, owned);
+  rs.peakRegions = Math.max(rs.peakRegions ?? owned, owned);
   if (start > 0) {
-    const prev = rs.troughRegions > 0 ? rs.troughRegions : start;
-    rs.troughRegions = Math.min(prev, owned);
+    // 0 is a real wipe trough; only undefined means "not yet seen".
+    rs.troughRegions =
+      rs.troughRegions === undefined
+        ? Math.min(start, owned)
+        : Math.min(rs.troughRegions, owned);
   }
 }
 
@@ -250,13 +253,13 @@ function updateCompositeExtrema(nation: NationState, state: GameState): void {
   if (!nation.alive) return;
   const c = compositeOf(nation, state);
   const rs = nation.runStats;
-  if (rs.peakComposite <= 0 && rs.troughComposite <= 0) {
+  if (rs.peakComposite === undefined) {
     rs.peakComposite = c;
     rs.troughComposite = c;
     return;
   }
   rs.peakComposite = Math.max(rs.peakComposite, c);
-  rs.troughComposite = Math.min(rs.troughComposite, c);
+  rs.troughComposite = Math.min(rs.troughComposite ?? c, c);
 }
 
 function updateRunStats(nation: NationState, state: GameState): void {
