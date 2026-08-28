@@ -45,6 +45,26 @@ describe("two nations 52-week harness", () => {
     }
   });
 
+  it("single-tick result stocks are finite (not only after 52 clones)", () => {
+    const world = twoNationWorld();
+    const result = tick(
+      makeTwoNationState(42),
+      1,
+      world,
+      createRng(42, 0),
+    );
+    const usa = result.state.nations.USA;
+    const eth = result.state.nations.ETH;
+    if (!usa || !eth) throw new Error("missing nations");
+    expect(result.state.tickIndex).toBe(1);
+    for (const nation of [usa, eth]) {
+      for (const value of Object.values(nation.stocks)) {
+        expect(Number.isFinite(value)).toBe(true);
+      }
+      expect(Number.isFinite(nation.derived.laborFactor)).toBe(true);
+    }
+  });
+
   it("high conscription lowers laborFactor versus zero conscription", () => {
     const world = twoNationWorld();
     const zero = makeTwoNationState(99);

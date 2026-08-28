@@ -1,3 +1,4 @@
+import { trackRng } from "./rng";
 import type {
   CountryId,
   Doctrine,
@@ -18,6 +19,21 @@ function clamp(x: number, lo: number, hi: number): number {
 
 function cloneState(state: GameState): GameState {
   return JSON.parse(JSON.stringify(state)) as GameState;
+}
+
+function assertFiniteStocks(state: GameState): void {
+  for (const id of Object.keys(state.nations).sort()) {
+    const nation = state.nations[id];
+    if (!nation) continue;
+    for (const [key, value] of Object.entries(nation.stocks)) {
+      if (typeof value !== "number" || !Number.isFinite(value)) {
+        throw new Error(`error_tick_nan: ${id}.${key}`);
+      }
+    }
+    if (!Number.isFinite(nation.derived.laborFactor)) {
+      throw new Error(`error_tick_nan: ${id}.laborFactor`);
+    }
+  }
 }
 
 export function addDaysUtc(date: GameDate, days: number): GameDate {
@@ -52,9 +68,10 @@ function resourceBaseFor(
   world: WorldView,
 ): ResourceStocks {
   const base = world.resourceBase[nation.id];
-  if (base) return base;
-  const { food, steel, oil, rares } = nation.stocks;
-  return { food, steel, oil, rares };
+  if (!base) {
+    throw new Error(`error_tick_missing_base: ${nation.id}`);
+  }
+  return base;
 }
 
 function resourceNeed(stocks: NationStocks, s: PolicySliders): ResourceStocks {
@@ -91,8 +108,9 @@ function stepNation(
   nation: NationState,
   state: GameState,
   world: WorldView,
-  _roll: () => number,
+  rng: Rng,
 ): void {
+  void rng;
   const s = nation.policies;
   const stocks = nation.stocks;
   const atWar = nation.atWarWith.length > 0;
@@ -183,9 +201,6 @@ function stepNation(
     stocks.rares - need.rares * Math.min(1, suff.rares),
   );
 
-  // 6. Trade: no-op (openness unused this slice)
-
-  // 7. Fiscal: tax, welfare, mil spend, interest, treasury, debt, GDP smoothing
   const extractValue =
     0.8 * extract.food +
     1.2 * extract.steel +
@@ -232,18 +247,18 @@ export function tick(
 ): TickResult {
   // 0. Ranked ended runs do not advance.
   if (state.ranked && state.status === "ended") {
-    return { state, newspapers: [], interrupted: false, dtWeeks: 0 };
+    const frozen = cloneState(state);
+    assertFiniteStocks(frozen);
+    return { state: frozen, newspapers: [], interrupted: false, dtWeeks: 0 };
   }
 
   const next = cloneState(state);
-  let cursor = next.rngCursor;
-  // Combat/event jitter consumes RNG later; production formulas do not.
-  const roll = (): number => {
-    cursor += 1;
-    return rng.next();
-  };
+  assertFiniteStocks(next);
+  // Production is deterministic; only rng.next() through this wrap advances rngCursor.
+  const tracked = trackRng(rng, next.rngCursor);
 
-  // 1. Date +1 week, tickIndex++
+  // 1. Date +1 week, tickIndex++. v1 dt is always one week; do not echo an unapplied dt.
+  void dt;
   next.tickIndex += 1;
   next.date = addDaysUtc(next.date, 7);
 
@@ -251,15 +266,15 @@ export function tick(
   for (const id of ids) {
     const nation = next.nations[id];
     if (!nation || !nation.alive) continue;
-    stepNation(nation, next, world, roll);
+    stepNation(nation, next, world, tracked);
   }
 
-  // 8–16. research / PP / combat / events / endings: no-op this slice
-  next.rngCursor = cursor;
+  next.rngCursor = tracked.cursor();
+  assertFiniteStocks(next);
   return {
     state: next,
     newspapers: [],
     interrupted: false,
-    dtWeeks: dt,
+    dtWeeks: 1,
   };
 }

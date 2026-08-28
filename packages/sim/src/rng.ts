@@ -27,3 +27,20 @@ export function createRng(seed: number, cursor = 0): Rng {
   }
   return { next: gen };
 }
+
+export interface CursorRng extends Rng {
+  cursor(): number;
+}
+
+export function trackRng(rng: Rng, startCursor: number): CursorRng {
+  let n = startCursor;
+  return {
+    next() {
+      n += 1;
+      return rng.next();
+    },
+    cursor() {
+      return n;
+    },
+  };
+}

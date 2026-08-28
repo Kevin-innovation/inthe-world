@@ -31,7 +31,8 @@ export type {
   WorldView,
 } from "./types";
 
-export { createRng, mulberry32, seedFrom } from "./rng";
+export { createRng, mulberry32, seedFrom, trackRng } from "./rng";
+export type { CursorRng } from "./rng";
 export { addDaysUtc, tick } from "./tick";
 export {
   DEFAULT_POLICIES,

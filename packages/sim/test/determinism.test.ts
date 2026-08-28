@@ -81,4 +81,57 @@ describe("determinism", () => {
     expect(highUsa.stocks.armySize).not.toBe(lowUsa.stocks.armySize);
     expect(highUsa.stocks.gdp).not.toBe(lowUsa.stocks.gdp);
   });
+
+  it("ranked ended no-op clones and does not advance", () => {
+    const world = twoNationWorld();
+    const state = makeTwoNationState(3);
+    state.ranked = true;
+    state.status = "ended";
+    state.tickIndex = 10;
+    state.date = { year: 1936, month: 5, day: 10 };
+    const result = tick(state, 1, world, createRng(state.seed, state.rngCursor));
+    expect(result.state).not.toBe(state);
+    expect(result.dtWeeks).toBe(0);
+    expect(result.state.tickIndex).toBe(10);
+    expect(result.state.date).toEqual({ year: 1936, month: 5, day: 10 });
+    expect(JSON.stringify(result.state)).toBe(JSON.stringify(state));
+    result.state.tickIndex = 99;
+    expect(state.tickIndex).toBe(10);
+  });
+
+  it("throws error_tick_nan when a cloned stock is non-finite", () => {
+    const world = twoNationWorld();
+    const state = makeTwoNationState(1);
+    const usa = state.nations.USA;
+    if (!usa) throw new Error("missing USA");
+    usa.stocks.food = Number.NaN;
+    expect(() =>
+      tick(state, 1, world, createRng(state.seed, state.rngCursor)),
+    ).toThrow(/error_tick_nan: USA\.food/);
+    expect(Number.isNaN(usa.stocks.food)).toBe(true);
+
+    const inf = makeTwoNationState(1);
+    const infUsa = inf.nations.USA;
+    if (!infUsa) throw new Error("missing USA");
+    infUsa.stocks.gdp = Number.POSITIVE_INFINITY;
+    expect(() => tick(inf, 1, world, createRng(inf.seed, 0))).toThrow(
+      /error_tick_nan: USA\.gdp/,
+    );
+  });
+
+  it("v1 tick always applies one week regardless of dt", () => {
+    const world = twoNationWorld();
+    const state = makeTwoNationState(1);
+    const result = tick(state, 2, world, createRng(state.seed, 0));
+    expect(result.dtWeeks).toBe(1);
+    expect(result.state.tickIndex).toBe(1);
+    expect(result.state.date).toEqual({ year: 1936, month: 3, day: 8 });
+  });
+
+  it("throws when WorldView has no resource base for a nation", () => {
+    const state = makeTwoNationState(1);
+    expect(() =>
+      tick(state, 1, { resourceBase: {} }, createRng(state.seed, 0)),
+    ).toThrow(/error_tick_missing_base: ETH|error_tick_missing_base: USA/);
+  });
 });
