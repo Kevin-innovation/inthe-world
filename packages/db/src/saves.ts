@@ -1,8 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import {
+  applyEventChoice,
   assertFiniteStocks,
+  autoResolve,
   createRng,
+  findEvent,
   makeTwoNationState,
   tick,
   twoNationWorld,
@@ -123,7 +126,29 @@ function applyCatchupTicks(state: GameState, weeks: number): {
   let interrupted = false;
   for (let i = 0; i < weeks; i++) {
     const rng = createRng(current.seed, current.rngCursor);
-    const result = tick(current, 1, world, rng);
+    let result = tick(current, 1, world, rng);
+    if (result.interrupted && result.state.pendingEvent) {
+      const pending = result.state.pendingEvent;
+      const def = findEvent(world.events, pending.eventId);
+      const nation = result.state.nations[pending.countryId];
+      if (def && nation) {
+        const choice = autoResolve(
+          def,
+          nation.policies,
+          nation.stocks.politicalPower,
+        );
+        result = {
+          ...result,
+          ...applyEventChoice(result.state, def, pending.countryId, choice.id),
+          interrupted: false,
+          interruptReason: undefined,
+        };
+      } else {
+        interrupted = true;
+        current = result.state;
+        break;
+      }
+    }
     current = result.state;
     if (result.interrupted) {
       interrupted = true;

@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
 import {
   countriesFileSchema,
+  eventsFileSchema,
   regionsFileSchema,
   seasonDefinitionSchema,
   seasonPackSchema,
@@ -18,6 +19,7 @@ export function seasonPackFromYaml(args: {
   seasonYaml: string;
   countriesYaml: string;
   regionsYaml?: string;
+  eventsYamls?: string[];
 }): SeasonPack {
   const season = seasonDefinitionSchema.parse(parseYaml(args.seasonYaml));
   const countries = countriesFileSchema.parse(parseYaml(args.countriesYaml));
@@ -25,20 +27,35 @@ export function seasonPackFromYaml(args: {
     args.regionsYaml === undefined
       ? []
       : regionsFileSchema.parse(parseYaml(args.regionsYaml));
-  return seasonPackSchema.parse({ ...season, countries, regions });
+  const events = (args.eventsYamls ?? []).flatMap((text) =>
+    eventsFileSchema.parse(parseYaml(text)),
+  );
+  return seasonPackSchema.parse({ ...season, countries, regions, events });
+}
+
+function readEventYamls(root: string, eventPack: string[]): string[] {
+  return eventPack.map((rel) => readFileSync(join(root, ...rel.split("/")), "utf8"));
 }
 
 export function loadSeasonPackFromFiles(paths: {
   seasonPath: string;
   countriesPath: string;
   regionsPath?: string;
+  contentRoot?: string;
 }): SeasonPack {
   const seasonYaml = readFileSync(paths.seasonPath, "utf8");
+  const season = seasonDefinitionSchema.parse(parseYaml(seasonYaml));
   const countriesYaml = readFileSync(paths.countriesPath, "utf8");
   const regionsYaml = paths.regionsPath
     ? readFileSync(paths.regionsPath, "utf8")
     : undefined;
-  return seasonPackFromYaml({ seasonYaml, countriesYaml, regionsYaml });
+  const root = paths.contentRoot ?? contentRoot();
+  return seasonPackFromYaml({
+    seasonYaml,
+    countriesYaml,
+    regionsYaml,
+    eventsYamls: readEventYamls(root, season.eventPack),
+  });
 }
 
 export function contentRoot(): string {
@@ -54,5 +71,6 @@ export function loadComingStormPack(): SeasonPack {
     seasonPath,
     countriesPath: join(root, ...season.countrySetup.split("/")),
     regionsPath: join(root, ...season.regionSetup.split("/")),
+    contentRoot: root,
   });
 }

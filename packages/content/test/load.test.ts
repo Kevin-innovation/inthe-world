@@ -15,13 +15,18 @@ describe("YAML string loader", () => {
       seasonPath,
       countriesPath,
       regionsPath,
+      contentRoot: root,
     });
+    const histYaml = readFileSync(join(root, "events", "1936_hist.yaml"), "utf8");
+    const procYaml = readFileSync(join(root, "events", "procedural.yaml"), "utf8");
     const fromStrings = seasonPackFromYaml({
       seasonYaml: readFileSync(seasonPath, "utf8"),
       countriesYaml: readFileSync(countriesPath, "utf8"),
       regionsYaml: readFileSync(regionsPath, "utf8"),
+      eventsYamls: [histYaml, procYaml],
     });
     expect(fromFiles).toEqual(fromStrings);
     expect(fromFiles.countries.length).toBeGreaterThanOrEqual(4);
+    expect(fromFiles.events.length).toBeGreaterThanOrEqual(13);
   });
 });

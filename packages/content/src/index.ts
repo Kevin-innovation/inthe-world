@@ -3,6 +3,12 @@ export {
   countriesFileSchema,
   countrySchema,
   countryStocksSchema,
+  effectSchema,
+  eventChoiceSchema,
+  eventChoiceTagsSchema,
+  eventDefinitionSchema,
+  eventTriggerSchema,
+  eventsFileSchema,
   factionSchema,
   isoDateSchema,
   regionSchema,
@@ -15,6 +21,9 @@ export {
 } from "./schema";
 export type {
   CountryDefinition,
+  EventChoiceContent,
+  EventDefinitionContent,
+  EventTriggerContent,
   RegionDefinition,
   SeasonDefinitionContent,
   SeasonPack,

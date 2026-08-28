@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   countrySchema,
+  eventDefinitionSchema,
   regionsFileSchema,
   tensionPointSchema,
 } from "../src/schema";
@@ -107,5 +108,34 @@ describe("the_coming_storm YAML", () => {
         "horn_africa",
       ]),
     );
+    const eventIds = pack.events.map((row) => row.id);
+    expect(eventIds).toEqual(
+      expect.arrayContaining([
+        "rhineland_remilitarization",
+        "anschluss",
+        "munich_crisis",
+        "invasion_of_poland",
+        "pearl_harbor",
+        "barbarossa",
+        "winter_war",
+        "spanish_civil_war",
+        "general_strike",
+        "famine",
+        "debt_crisis",
+        "bumper_harvest",
+        "war_weariness",
+      ]),
+    );
+  });
+});
+
+describe("event schema", () => {
+  it("rejects missing id", () => {
+    const pack = loadComingStormPack();
+    const anschluss = pack.events.find((row) => row.id === "anschluss");
+    if (!anschluss) throw new Error("missing anschluss");
+    const { id: _id, ...rest } = anschluss;
+    void _id;
+    expect(eventDefinitionSchema.safeParse(rest).success).toBe(false);
   });
 });

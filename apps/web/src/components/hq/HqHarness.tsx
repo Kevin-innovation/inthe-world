@@ -3,16 +3,20 @@
 import { useMemo, useState, type ReactNode } from "react";
 import type {
   ChronicleEntry,
+  EventDefinition,
   GameState,
   NationStocks,
   PolicySliders,
 } from "@simul/sim";
+import { findEvent } from "@simul/sim";
 import {
   applyDraftPolicies,
   createHarnessState,
   playerPolicies,
   previewPolicyCost,
+  resolveHarnessEvent,
   tickWeek,
+  TWO_NATION_WORLD,
 } from "@/lib/harness";
 import {
   DOCTRINES,
@@ -93,13 +97,44 @@ function NewspaperList({ entries }: { entries: ChronicleEntry[] }) {
         <ul className="newspaper-list">
           {entries.map((entry, index) => (
             <li key={`${entry.tick}-${entry.titleKey}-${index}`}>
-              <h3>{t(entry.titleKey)}</h3>
-              <p>{t(entry.bodyKey)}</p>
+              <h3>{t(entry.titleKey, entry.args)}</h3>
+              <p>{t(entry.bodyKey, entry.args)}</p>
             </li>
           ))}
         </ul>
       )}
     </section>
+  );
+}
+
+function EventModal({
+  event,
+  onChoose,
+}: {
+  event: EventDefinition;
+  onChoose: (choiceId: string) => void;
+}) {
+  const buttons = event.choices.slice(0, 3);
+  return (
+    <div className="event-modal" role="dialog" aria-modal="true">
+      <div className="event-modal-card">
+        <p className="event-kicker">{t("hq.event")}</p>
+        <h2>{t(event.titleKey)}</h2>
+        <p>{t(event.blurbKey)}</p>
+        <div className="event-choices">
+          {buttons.map((choice) => (
+            <button
+              key={choice.id}
+              className="hq-btn hq-btn-primary"
+              type="button"
+              onClick={() => onChoose(choice.id)}
+            >
+              {t(choice.titleKey)} · {choice.ppCost} {t("hq.pp")}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -116,16 +151,30 @@ export function HqHarness() {
   const canApply = cost > 0 && cost <= pp;
 
   function onNextWeek() {
+    if (state.pendingEvent) return;
     try {
       const result = tickWeek(state);
       setState(result.state);
       if (result.newspapers.length > 0) {
-        setPapers((prev) => [...result.newspapers, ...prev]);
+        setPapers((prev) => [...result.newspapers, ...prev].slice(0, 24));
       }
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("hq.tickFailed"));
     }
+  }
+
+  function onEventChoice(choiceId: string) {
+    const result = resolveHarnessEvent(state, choiceId);
+    if (result.error) {
+      setError(t("hq.eventResolveFailed"));
+      return;
+    }
+    setState(result.state);
+    if (result.newspapers.length > 0) {
+      setPapers((prev) => [...result.newspapers, ...prev].slice(0, 24));
+    }
+    setError(null);
   }
 
   function onApply() {
@@ -149,10 +198,19 @@ export function HqHarness() {
     return <p className="hq-error">{t("hq.missingPlayer")}</p>;
   }
 
-  const feed = papers.length > 0 ? papers : state.chronicle;
+  const feed =
+    papers.length > 0
+      ? papers.slice(0, 16)
+      : [...state.chronicle].reverse().slice(0, 16);
+  const pendingEvent = state.pendingEvent
+    ? findEvent(TWO_NATION_WORLD.events, state.pendingEvent.eventId)
+    : undefined;
 
   return (
     <div className="hq">
+      {pendingEvent ? (
+        <EventModal event={pendingEvent} onChoose={onEventChoice} />
+      ) : null}
       <header className="hq-bar">
         <div className="hq-meter">
           <span>{t("hq.date")}</span>

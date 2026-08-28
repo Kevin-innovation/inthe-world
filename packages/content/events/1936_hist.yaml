@@ -1,0 +1,257 @@
+- id: rhineland_remilitarization
+  titleKey: event.rhineland.title
+  blurbKey: event.rhineland.blurb
+  season: the_coming_storm
+  historicalDate: "1936-03-07"
+  tags: [historical]
+  trigger:
+    kind: and
+    of:
+      - { kind: date, from: "1936-03-01", to: "1936-03-31" }
+      - { kind: condition, expr: "country==GER" }
+  choices:
+    - id: remilitarize
+      titleKey: event.rhineland.remilitarize
+      ppCost: 10
+      tags: { doctrine: 0.7, intervention: 0.55, liberty: 0.2, risk: 0.4 }
+      effects:
+        - { op: add_tension, value: 6 }
+        - { op: add_ws, value: 8 }
+        - { op: add_stock, key: milFactories, value: 2 }
+        - { op: add_flag, key: rhineland_remilitarized, value: 1 }
+    - id: delay
+      titleKey: event.rhineland.delay
+      ppCost: 0
+      tags: { doctrine: 0.15, intervention: 0.1, liberty: 0.45, risk: 0.1 }
+      effects:
+        - { op: add_stability, value: 2 }
+        - { op: add_ws, value: -4 }
+
+- id: spanish_civil_war
+  titleKey: event.spanishCivilWar.title
+  blurbKey: event.spanishCivilWar.blurb
+  season: the_coming_storm
+  historicalDate: "1936-07-17"
+  tags: [historical]
+  trigger:
+    kind: and
+    of:
+      - { kind: date, from: "1936-07-01", to: "1936-08-31" }
+      - kind: or
+        of:
+          - { kind: condition, expr: "country==SPR" }
+          - { kind: condition, expr: "country==GER" }
+  choices:
+    - id: intervene
+      titleKey: event.spanishCivilWar.intervene
+      ppCost: 12
+      tags: { doctrine: 0.65, intervention: 0.85, liberty: 0.2, risk: 0.45 }
+      effects:
+        - { op: add_tension, value: 5 }
+        - { op: add_stock, key: munitions, value: -8 }
+        - { op: add_ws, value: 4 }
+        - { op: add_flag, key: spain_intervened, value: 1 }
+    - id: embargo
+      titleKey: event.spanishCivilWar.embargo
+      ppCost: 4
+      tags: { doctrine: 0.35, intervention: 0.4, liberty: 0.5, risk: 0.2 }
+      effects:
+        - { op: add_tension, value: 2 }
+        - { op: add_stability, value: 1 }
+    - id: abstain
+      titleKey: event.spanishCivilWar.abstain
+      ppCost: 0
+      tags: { doctrine: 0.1, intervention: 0.05, liberty: 0.55, risk: 0.1 }
+      effects:
+        - { op: add_stability, value: 2 }
+        - { op: add_ws, value: -3 }
+
+- id: anschluss
+  titleKey: event.anschluss.title
+  blurbKey: event.anschluss.blurb
+  season: the_coming_storm
+  historicalDate: "1938-03-12"
+  tags: [historical]
+  trigger:
+    kind: and
+    of:
+      - { kind: date, from: "1938-03-01", to: "1938-03-31" }
+      - { kind: condition, expr: "country==GER" }
+      - { kind: condition, expr: "owner(austria)!=GER" }
+  choices:
+    - id: annex
+      titleKey: event.anschluss.annex
+      ppCost: 12
+      tags: { doctrine: 0.7, intervention: 0.8, liberty: 0.15, risk: 0.45 }
+      effects:
+        - { op: add_tension, value: 8 }
+        - { op: add_stability, value: 4 }
+        - { op: add_stock, key: civFactories, value: 4 }
+        - { op: add_stock, key: population, value: 6.7 }
+        - { op: transfer_region, region: austria }
+        - { op: add_flag, key: anschluss_done, value: 1 }
+    - id: wait
+      titleKey: event.anschluss.wait
+      ppCost: 0
+      tags: { doctrine: 0.2, intervention: 0.15, liberty: 0.4, risk: 0.1 }
+      effects:
+        - { op: add_stability, value: -2 }
+        - { op: add_ws, value: -3 }
+
+- id: munich_crisis
+  titleKey: event.munich.title
+  blurbKey: event.munich.blurb
+  season: the_coming_storm
+  historicalDate: "1938-09-30"
+  tags: [historical]
+  trigger:
+    kind: and
+    of:
+      - { kind: date, from: "1938-09-01", to: "1938-09-30" }
+      - { kind: condition, expr: "country==GER" }
+  choices:
+    - id: dictate
+      titleKey: event.munich.dictate
+      ppCost: 10
+      tags: { doctrine: 0.75, intervention: 0.7, liberty: 0.1, risk: 0.4 }
+      effects:
+        - { op: add_tension, value: 7 }
+        - { op: add_ws, value: 6 }
+        - { op: transfer_region, region: czechoslovakia }
+        - { op: add_flag, key: munich_accepted, value: 1 }
+    - id: conference
+      titleKey: event.munich.conference
+      ppCost: 6
+      tags: { doctrine: 0.4, intervention: 0.45, liberty: 0.4, risk: 0.2 }
+      effects:
+        - { op: add_tension, value: 3 }
+        - { op: add_stability, value: 2 }
+        - { op: add_flag, key: munich_talks, value: 1 }
+    - id: stand_down
+      titleKey: event.munich.standDown
+      ppCost: 0
+      tags: { doctrine: 0.15, intervention: 0.1, liberty: 0.5, risk: 0.1 }
+      effects:
+        - { op: add_ws, value: -6 }
+        - { op: add_stability, value: 3 }
+
+- id: invasion_of_poland
+  titleKey: event.poland.title
+  blurbKey: event.poland.blurb
+  season: the_coming_storm
+  historicalDate: "1939-09-01"
+  tags: [historical]
+  trigger:
+    kind: and
+    of:
+      - { kind: date, from: "1939-08-25", to: "1939-09-30" }
+      - { kind: condition, expr: "country==GER" }
+  choices:
+    - id: strike
+      titleKey: event.poland.strike
+      ppCost: 15
+      tags: { doctrine: 0.9, intervention: 0.85, liberty: 0.1, risk: 0.55 }
+      effects:
+        - { op: add_tension, value: 12 }
+        - { op: declare_war, other: POL }
+        - { op: declare_war, other: ENG }
+        - { op: add_ws, value: 10 }
+        - { op: add_flag, key: poland_invaded, value: 1 }
+    - id: delay
+      titleKey: event.poland.delay
+      ppCost: 0
+      tags: { doctrine: 0.25, intervention: 0.2, liberty: 0.4, risk: 0.15 }
+      effects:
+        - { op: add_ws, value: -5 }
+        - { op: add_stability, value: 2 }
+
+- id: winter_war
+  titleKey: event.winterWar.title
+  blurbKey: event.winterWar.blurb
+  season: the_coming_storm
+  historicalDate: "1939-11-30"
+  tags: [historical]
+  trigger:
+    kind: and
+    of:
+      - { kind: date, from: "1939-11-15", to: "1939-12-31" }
+      - { kind: condition, expr: "country==SOV" }
+  choices:
+    - id: push
+      titleKey: event.winterWar.push
+      ppCost: 10
+      tags: { doctrine: 0.7, intervention: 0.75, liberty: 0.15, risk: 0.5 }
+      effects:
+        - { op: add_tension, value: 6 }
+        - { op: declare_war, other: FIN }
+        - { op: add_stock, key: munitions, value: -6 }
+        - { op: add_flag, key: winter_war, value: 1 }
+    - id: bargain
+      titleKey: event.winterWar.bargain
+      ppCost: 6
+      tags: { doctrine: 0.3, intervention: 0.35, liberty: 0.4, risk: 0.2 }
+      effects:
+        - { op: add_tension, value: 2 }
+        - { op: add_stability, value: 1 }
+
+- id: barbarossa
+  titleKey: event.barbarossa.title
+  blurbKey: event.barbarossa.blurb
+  season: the_coming_storm
+  historicalDate: "1941-06-22"
+  tags: [historical]
+  trigger:
+    kind: and
+    of:
+      - { kind: date, from: "1941-06-01", to: "1941-06-30" }
+      - { kind: condition, expr: "country==GER" }
+  choices:
+    - id: open_front
+      titleKey: event.barbarossa.openFront
+      ppCost: 18
+      tags: { doctrine: 0.95, intervention: 0.9, liberty: 0.1, risk: 0.6 }
+      effects:
+        - { op: add_tension, value: 12 }
+        - { op: declare_war, other: SOV }
+        - { op: add_ws, value: 8 }
+        - { op: add_stock, key: munitions, value: -12 }
+        - { op: add_flag, key: eastern_front, value: 1 }
+    - id: hold
+      titleKey: event.barbarossa.hold
+      ppCost: 0
+      tags: { doctrine: 0.25, intervention: 0.2, liberty: 0.35, risk: 0.15 }
+      effects:
+        - { op: add_ws, value: -4 }
+        - { op: add_stability, value: 2 }
+
+- id: pearl_harbor
+  titleKey: event.pearlHarbor.title
+  blurbKey: event.pearlHarbor.blurb
+  season: the_coming_storm
+  historicalDate: "1941-12-07"
+  tags: [historical]
+  trigger:
+    kind: and
+    of:
+      - { kind: date, from: "1941-12-01", to: "1941-12-31" }
+      - { kind: condition, expr: "country==USA" }
+  choices:
+    - id: mobilize
+      titleKey: event.pearlHarbor.mobilize
+      ppCost: 8
+      tags: { doctrine: 0.8, intervention: 0.85, liberty: 0.35, risk: 0.35 }
+      effects:
+        - { op: add_tension, value: 10 }
+        - { op: declare_war, other: JAP }
+        - { op: add_ws, value: 20 }
+        - { op: add_stock, key: milFactories, value: 4 }
+        - { op: add_flag, key: isolation_ended, value: 1 }
+        - { op: remove_spirit, key: isolation }
+    - id: limited
+      titleKey: event.pearlHarbor.limited
+      ppCost: 4
+      tags: { doctrine: 0.4, intervention: 0.4, liberty: 0.45, risk: 0.2 }
+      effects:
+        - { op: add_tension, value: 4 }
+        - { op: add_ws, value: 8 }
+        - { op: add_flag, key: limited_response, value: 1 }

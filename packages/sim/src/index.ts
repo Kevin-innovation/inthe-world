@@ -35,6 +35,17 @@ export { createRng, mulberry32, seedFrom, trackRng } from "./rng";
 export type { CursorRng } from "./rng";
 export { addDaysUtc, assertFiniteStocks, cloneGameState, tick } from "./tick";
 export {
+  FIRED_FLAG_PREFIX,
+  applyEventChoice,
+  applyPendingChoice,
+  autoResolve,
+  eventMatches,
+  evalTrigger,
+  findEvent,
+  isoDate,
+  runEventPhase,
+} from "./events";
+export {
   doctrineMod,
   forceProjection,
   paperStrength,

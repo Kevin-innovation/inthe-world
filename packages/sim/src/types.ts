@@ -294,6 +294,9 @@ export interface Rng {
 
 export interface WorldView {
   resourceBase: Record<CountryId, ResourceStocks>;
+  events?: EventDefinition[];
+  // Default AFK: player events auto-resolve. Pause only when the live UI is waiting.
+  regencyPause?: boolean;
 }
 
 export interface GameDate {

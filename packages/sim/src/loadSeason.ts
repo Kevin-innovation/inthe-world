@@ -3,6 +3,7 @@ import { DEFAULT_POLICIES } from "./fixtures";
 import type {
   CountryId,
   DerivedStats,
+  EventDefinition,
   FactionId,
   GameDate,
   GameState,
@@ -125,6 +126,10 @@ function copyBase(base: ResourceStocks): ResourceStocks {
   };
 }
 
+function copyEvents(events: SeasonPack["events"]): EventDefinition[] {
+  return JSON.parse(JSON.stringify(events ?? [])) as EventDefinition[];
+}
+
 function makeNation(args: {
   id: CountryId;
   isPlayer: boolean;
@@ -238,5 +243,5 @@ export function loadSeason(
     ranked: false,
   };
 
-  return { state, world: { resourceBase } };
+  return { state, world: { resourceBase, events: copyEvents(pack.events) } };
 }

@@ -1,4 +1,5 @@
 import { runCampaignPulses, writePaperStrength } from "./combat";
+import { runEventPhase } from "./events";
 import { trackRng } from "./rng";
 import type {
   CountryId,
@@ -570,6 +571,17 @@ export function tick(
     return { state: frozen, newspapers: [], interrupted: false, dtWeeks: 0 };
   }
 
+  if (state.pendingEvent && world.regencyPause) {
+    const frozen = cloneGameState(state);
+    return {
+      state: frozen,
+      newspapers: [],
+      interrupted: true,
+      interruptReason: "event",
+      dtWeeks: 0,
+    };
+  }
+
   const next = cloneGameState(state);
   // Production is deterministic; only rng.next() through this wrap advances rngCursor.
   const tracked = trackRng(rng, next.rngCursor);
@@ -589,13 +601,17 @@ export function tick(
   // Pulses read this week's paper; losing/winning flags land in time for next week's stab/ws.
   writePaperStrength(next);
   const newspapers = runCampaignPulses(next, tracked);
+  // 14. Event triggers after pulses; AFK auto-resolves, pause sets pendingEvent.
+  const eventResult = runEventPhase(next, world);
+  newspapers.push(...eventResult.newspapers);
 
   next.rngCursor = tracked.cursor();
   assertFiniteStocks(next);
   return {
     state: next,
     newspapers,
-    interrupted: false,
+    interrupted: eventResult.interrupted,
+    interruptReason: eventResult.interruptReason,
     dtWeeks: 1,
   };
 }

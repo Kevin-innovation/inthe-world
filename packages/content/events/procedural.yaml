@@ -1,0 +1,136 @@
+- id: general_strike
+  titleKey: event.generalStrike.title
+  blurbKey: event.generalStrike.blurb
+  season: "*"
+  tags: [procedural]
+  cooldownWeeks: 16
+  trigger:
+    kind: condition
+    expr: "stability<40"
+  choices:
+    - id: concede
+      titleKey: event.generalStrike.concede
+      ppCost: 8
+      tags: { doctrine: 0.2, intervention: 0.15, liberty: 0.85, risk: 0.15 }
+      effects:
+        - { op: add_stability, value: 6 }
+        - { op: add_stock, key: consumerGoods, value: -4 }
+        - { op: add_ws, value: -2 }
+    - id: repress
+      titleKey: event.generalStrike.repress
+      ppCost: 6
+      tags: { doctrine: 0.45, intervention: 0.2, liberty: 0.1, risk: 0.45 }
+      effects:
+        - { op: add_stability, value: -4 }
+        - { op: add_ws, value: 3 }
+        - { op: add_stock, key: civFactories, value: -1 }
+
+- id: famine
+  titleKey: event.famine.title
+  blurbKey: event.famine.blurb
+  season: "*"
+  tags: [procedural]
+  cooldownWeeks: 12
+  trigger:
+    kind: condition
+    expr: "stock.food<2"
+  choices:
+    - id: relief
+      titleKey: event.famine.relief
+      ppCost: 10
+      tags: { doctrine: 0.2, intervention: 0.2, liberty: 0.7, risk: 0.15 }
+      effects:
+        - { op: add_stock, key: food, value: 10 }
+        - { op: add_stability, value: 5 }
+        - { op: add_stock, key: treasury, value: -8 }
+    - id: endure
+      titleKey: event.famine.endure
+      ppCost: 0
+      tags: { doctrine: 0.4, intervention: 0.1, liberty: 0.2, risk: 0.55 }
+      effects:
+        - { op: add_stability, value: -8 }
+        - { op: add_ws, value: -4 }
+
+- id: debt_crisis
+  titleKey: event.debtCrisis.title
+  blurbKey: event.debtCrisis.blurb
+  season: "*"
+  tags: [procedural]
+  cooldownWeeks: 20
+  trigger:
+    kind: condition
+    expr: "debt_ratio>1.5"
+  choices:
+    - id: austerity
+      titleKey: event.debtCrisis.austerity
+      ppCost: 8
+      tags: { doctrine: 0.25, intervention: 0.1, liberty: 0.35, risk: 0.25 }
+      effects:
+        - { op: add_stock, key: debt, value: -12 }
+        - { op: add_stability, value: -3 }
+    - id: monetize
+      titleKey: event.debtCrisis.monetize
+      ppCost: 4
+      tags: { doctrine: 0.35, intervention: 0.15, liberty: 0.4, risk: 0.5 }
+      effects:
+        - { op: add_stock, key: inflation, value: 6 }
+        - { op: add_stock, key: debt, value: -6 }
+        - { op: add_stock, key: treasury, value: 8 }
+
+- id: bumper_harvest
+  titleKey: event.bumperHarvest.title
+  blurbKey: event.bumperHarvest.blurb
+  season: "*"
+  tags: [procedural]
+  cooldownWeeks: 40
+  trigger:
+    kind: and
+    of:
+      - { kind: condition, expr: "month>=8" }
+      - { kind: condition, expr: "month<=9" }
+      - { kind: condition, expr: "!at_war" }
+  choices:
+    - id: store
+      titleKey: event.bumperHarvest.store
+      ppCost: 0
+      tags: { doctrine: 0.2, intervention: 0.1, liberty: 0.5, risk: 0.05 }
+      effects:
+        - { op: add_stock, key: food, value: 12 }
+        - { op: add_stability, value: 3 }
+    - id: export
+      titleKey: event.bumperHarvest.export
+      ppCost: 2
+      tags: { doctrine: 0.3, intervention: 0.35, liberty: 0.45, risk: 0.15 }
+      effects:
+        - { op: add_stock, key: food, value: 4 }
+        - { op: add_stock, key: treasury, value: 6 }
+        - { op: add_tension, value: -1 }
+
+- id: war_weariness
+  titleKey: event.warWeariness.title
+  blurbKey: event.warWeariness.blurb
+  season: "*"
+  tags: [procedural]
+  cooldownWeeks: 12
+  trigger:
+    kind: and
+    of:
+      - { kind: condition, expr: "at_war" }
+      - { kind: condition, expr: "warSupport<40" }
+  choices:
+    - id: rally
+      titleKey: event.warWeariness.rally
+      ppCost: 8
+      tags: { doctrine: 0.7, intervention: 0.55, liberty: 0.25, risk: 0.3 }
+      effects:
+        - { op: add_ws, value: 8 }
+        - { op: add_stability, value: -2 }
+        - { op: add_stock, key: munitions, value: -4 }
+    - id: seek_terms
+      titleKey: event.warWeariness.seekTerms
+      ppCost: 6
+      tags: { doctrine: 0.2, intervention: 0.15, liberty: 0.6, risk: 0.25 }
+      effects:
+        - { op: add_ws, value: -6 }
+        - { op: add_stability, value: 4 }
+        - { op: add_tension, value: -2 }

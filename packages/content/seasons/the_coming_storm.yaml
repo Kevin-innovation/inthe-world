@@ -8,4 +8,6 @@ tensionSchedule:
   - { at: 1939-09-01, value: 40 }
 countrySetup: countries/1936.yaml
 regionSetup: regions/1936.yaml
-eventPack: []
+eventPack:
+  - events/1936_hist.yaml
+  - events/procedural.yaml

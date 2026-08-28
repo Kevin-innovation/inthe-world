@@ -398,6 +398,55 @@ button:disabled {
   font-size: 0.88rem;
 }
 
+.event-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgb(8 10 12 / 0.62);
+}
+
+.event-modal-card {
+  width: min(32rem, 100%);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.2rem 1.1rem;
+}
+
+.event-kicker {
+  margin: 0 0 0.45rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  color: var(--brass);
+}
+
+.event-modal-card h2 {
+  margin: 0 0 0.55rem;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+}
+
+.event-modal-card p {
+  margin: 0 0 0.9rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.event-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.event-choices .hq-btn {
+  text-align: left;
+  width: 100%;
+}
+
 @media (min-width: 900px) {
   .hq {
     height: 100dvh;
