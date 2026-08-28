@@ -7,13 +7,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "geojson": "node scripts/build-region-geojson.mjs"
   },
   "dependencies": {
     "@simul/content": "workspace:*",
     "@simul/db": "workspace:*",
     "@simul/sim": "workspace:*",
     "convex": "1.45.0",
+    "maplibre-gl": "5.14.0",
     "next": "15.5.7",
     "react": "19.1.0",
     "react-dom": "19.1.0"

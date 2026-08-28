@@ -225,18 +225,11 @@ export function HqHarness({
       </header>
 
       <RegionMap
-        collapsed={false}
         regions={state.regions}
         selectedId={selectedRegionId}
         onSelect={setSelectedRegionId}
       />
       <StatCells stocks={player.stocks} asChips />
-      <RegionMap
-        collapsed
-        regions={state.regions}
-        selectedId={selectedRegionId}
-        onSelect={setSelectedRegionId}
-      />
 
       <div className="hq-col">
         <section className="hq-panel hq-desktop-stats">
