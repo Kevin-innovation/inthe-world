@@ -231,15 +231,84 @@ button:disabled {
   letter-spacing: 0.16em;
 }
 
-.map-placeholder {
-  min-height: 10rem;
-  background: var(--map);
-  color: var(--map-ink);
+.choropleth {
+  position: relative;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #243038;
+}
+
+.choropleth svg {
+  display: block;
+  width: 100%;
+  min-height: 12rem;
+}
+
+.hq-map-mobile .choropleth svg {
+  height: 42vw;
+  max-height: 18rem;
+}
+
+.region-path {
+  stroke: #141a20;
+  stroke-width: 0.9;
+  cursor: pointer;
+  vector-effect: non-scaling-stroke;
+  touch-action: manipulation;
+}
+
+.region-path:hover {
+  filter: brightness(1.12);
+  stroke: var(--brass);
+}
+
+.region-path:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 1px;
+}
+
+.region-path.is-selected {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.region-hatch {
+  pointer-events: none;
+}
+
+.region-inspector {
+  position: absolute;
+  left: 0.55rem;
+  bottom: 0.55rem;
+  max-width: min(22rem, calc(100% - 1.1rem));
+  background: rgb(16 20 24 / 0.9);
+  border: 1px solid var(--line);
+  padding: 0.5rem 0.7rem;
+  pointer-events: none;
+}
+
+.region-inspector p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.region-inspector dl {
+  margin: 0;
   display: grid;
-  place-items: center;
-  letter-spacing: 0.42em;
-  font-weight: 700;
-  font-size: 1.15rem;
+  grid-template-columns: auto 1fr;
+  gap: 0.18rem 0.75rem;
+  font-size: 0.78rem;
+}
+
+.region-inspector dt {
+  color: var(--muted);
+}
+
+.region-inspector dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .hq-col {
@@ -420,14 +489,21 @@ button:disabled {
   .hq-map-desktop {
     grid-area: map;
     display: flex;
+    flex-direction: column;
     min-height: 0;
     border: 1px solid var(--line);
+    background: var(--panel);
   }
 
-  .hq-map-desktop .map-placeholder {
+  .hq-map-desktop .choropleth {
     flex: 1;
     min-height: 0;
+  }
+
+  .hq-map-desktop .choropleth svg {
+    flex: 1;
     height: 100%;
+    min-height: 0;
   }
 
   .hq-desktop-stats {

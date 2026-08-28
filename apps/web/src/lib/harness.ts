@@ -11,6 +11,7 @@ import {
   type PolicySliders,
   type TickResult,
 } from "@simul/sim";
+import { comingStormRegions } from "./coming-storm-regions";
 import { diffPolicies } from "./hq-model";
 
 const HARNESS_SEED = seedFrom("dev-harness", "the_coming_storm");
@@ -19,7 +20,10 @@ const HARNESS_SEED = seedFrom("dev-harness", "the_coming_storm");
 export const TWO_NATION_WORLD = twoNationWorld();
 
 export function createHarnessState(): GameState {
-  return makePeaceBalancedState(HARNESS_SEED);
+  const state = makePeaceBalancedState(HARNESS_SEED);
+  // twoNationWorld has empty regions; inject 1936 ids so the HQ choropleth has owners.
+  state.regions = comingStormRegions();
+  return state;
 }
 
 export function playerPolicies(state: GameState): PolicySliders {

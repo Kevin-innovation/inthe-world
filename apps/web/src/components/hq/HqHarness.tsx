@@ -25,24 +25,7 @@ import {
   type HqStatKey,
 } from "@/lib/hq-model";
 import { t } from "@/lib/i18n";
-
-function MapPlaceholder({ collapsed }: { collapsed: boolean }) {
-  const label = t("hq.map");
-  const body = <div className="map-placeholder">{label}</div>;
-  if (!collapsed) {
-    return (
-      <section className="hq-map-desktop" aria-label={label}>
-        {body}
-      </section>
-    );
-  }
-  return (
-    <details className="hq-map-mobile">
-      <summary>{label}</summary>
-      {body}
-    </details>
-  );
-}
+import { RegionMap } from "./RegionMap";
 
 function StatCells({
   stocks,
@@ -109,6 +92,7 @@ export function HqHarness() {
   const [draft, setDraft] = useState<PolicySliders>(() => playerPolicies(state));
   const [papers, setPapers] = useState<ChronicleEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null);
 
   const player = state.nations[state.playerCountryId];
   const cost = useMemo(() => previewPolicyCost(state, draft), [state, draft]);
@@ -177,9 +161,19 @@ export function HqHarness() {
         </div>
       </header>
 
-      <MapPlaceholder collapsed={false} />
+      <RegionMap
+        collapsed={false}
+        regions={state.regions}
+        selectedId={selectedRegionId}
+        onSelect={setSelectedRegionId}
+      />
       <StatCells stocks={player.stocks} asChips />
-      <MapPlaceholder collapsed />
+      <RegionMap
+        collapsed
+        regions={state.regions}
+        selectedId={selectedRegionId}
+        onSelect={setSelectedRegionId}
+      />
 
       <div className="hq-col">
         <section className="hq-panel hq-desktop-stats">

@@ -17,6 +17,17 @@
     "previewCost": "예상 비용",
     "insufficientPp": "정치력 부족",
     "map": "맵",
+    "inspectorEmpty": "지역을 선택하세요.",
+    "regionId": "지역",
+    "owner": "소유국",
+    "controller": "통제국",
+    "terrain": "지형",
+    "coastal": "해안",
+    "contestedBy": "분쟁 상대",
+    "factoryDamage": "공장 피해",
+    "yes": "예",
+    "no": "아니오",
+    "none": "없음",
     "newspaper": "신문",
     "newspaperEmpty": "이번 주 소식이 없습니다.",
     "missingPlayer": "플레이어 국가를 찾을 수 없습니다.",
@@ -60,5 +71,15 @@
     "researchMil": "군사 연구",
     "researchInd": "산업 연구",
     "researchSoc": "사회 연구"
+  },
+  "terrain": {
+    "plains": "평원",
+    "forest": "삼림",
+    "hills": "구릉",
+    "mountains": "산악",
+    "urban": "도시",
+    "desert": "사막",
+    "jungle": "밀림",
+    "coastal": "해안"
   }
 }
