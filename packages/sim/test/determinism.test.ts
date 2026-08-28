@@ -131,7 +131,12 @@ describe("determinism", () => {
   it("throws when WorldView has no resource base for a nation", () => {
     const state = makeTwoNationState(1);
     expect(() =>
-      tick(state, 1, { resourceBase: {} }, createRng(state.seed, 0)),
+      tick(
+        state,
+        1,
+        { resourceBase: {}, tensionSchedule: [] },
+        createRng(state.seed, 0),
+      ),
     ).toThrow(/error_tick_missing_base: ETH|error_tick_missing_base: USA/);
   });
 });

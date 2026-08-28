@@ -1,4 +1,5 @@
 import { contentHash, type SeasonPack } from "@simul/content";
+import { tensionTargetAt } from "./ai";
 import { DEFAULT_POLICIES } from "./fixtures";
 import type {
   CountryId,
@@ -47,6 +48,8 @@ function runStatsFrom(stocks: NationStocks): RunStats {
     troughStability: stocks.stability,
     peakGdp: stocks.gdp,
     troughGdp: stocks.gdp,
+    peakArmy: stocks.armySize,
+    startArmy: stocks.armySize,
     peakComposite: 0,
     troughComposite: 0,
     peakRegions: 0,
@@ -102,15 +105,7 @@ function tensionAtStart(
   schedule: SeasonPack["tensionSchedule"],
   start: string,
 ): number {
-  let at = "";
-  let value = 0;
-  for (const point of schedule) {
-    if (point.at <= start && point.at >= at) {
-      at = point.at;
-      value = point.value;
-    }
-  }
-  return value;
+  return tensionTargetAt(schedule, start) ?? 0;
 }
 
 function copyBase(base: ResourceStocks): ResourceStocks {
@@ -121,6 +116,12 @@ function copyBase(base: ResourceStocks): ResourceStocks {
     oil: base.oil,
     rares: base.rares,
   };
+}
+
+function copySchedule(
+  schedule: SeasonPack["tensionSchedule"],
+): { at: string; value: number }[] {
+  return schedule.map((point) => ({ at: point.at, value: point.value }));
 }
 
 function makeNation(args: {
@@ -147,6 +148,9 @@ function makeNation(args: {
     stocks,
     derived: derivedFrom(stocks, args.faction),
     policies: { ...DEFAULT_POLICIES },
+    civBuildPts: 0,
+    milBuildPts: 0,
+    infraBuildPts: 0,
     spirits: [],
     focus: null,
     faction: args.faction,
@@ -233,5 +237,11 @@ export function loadSeason(
     ranked: false,
   };
 
-  return { state, world: { resourceBase } };
+  return {
+    state,
+    world: {
+      resourceBase,
+      tensionSchedule: copySchedule(pack.tensionSchedule),
+    },
+  };
 }

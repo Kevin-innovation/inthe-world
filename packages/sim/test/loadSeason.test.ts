@@ -114,4 +114,21 @@ describe("loadSeason", () => {
     usaBase.food += 1;
     expect(usaRow.base.food).toBe(90);
   });
+
+  it("copies tensionSchedule instead of aliasing the pack array", () => {
+    const pack = loadComingStormPack();
+    const { world, state } = loadSeason(pack, {
+      saveId: "s1",
+      seed: 1,
+      playerCountryId: "USA",
+    });
+    expect(world.tensionSchedule).toEqual(pack.tensionSchedule);
+    expect(world.tensionSchedule).not.toBe(pack.tensionSchedule);
+    expect(world.tensionSchedule[0]).not.toBe(pack.tensionSchedule[0]);
+    const first = world.tensionSchedule[0];
+    if (!first) throw new Error("missing schedule point");
+    first.value = 99;
+    expect(pack.tensionSchedule[0]?.value).not.toBe(99);
+    expect(state.worldTension).toBe(16);
+  });
 });

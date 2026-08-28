@@ -1,3 +1,4 @@
+import { stepAiPolicies, stepWorldTension } from "./ai";
 import { trackRng } from "./rng";
 import type {
   CountryId,
@@ -51,6 +52,12 @@ export function assertFiniteStocks(state: GameState): void {
     if (!Number.isFinite(nation.infraBuildPts)) {
       throw new Error(`error_tick_nan: ${id}.infraBuildPts`);
     }
+  }
+  if (
+    typeof state.worldTension !== "number" ||
+    !Number.isFinite(state.worldTension)
+  ) {
+    throw new Error("error_tick_nan: worldTension");
   }
 }
 
@@ -566,10 +573,15 @@ export function tick(
   // Production is deterministic; only rng.next() through this wrap advances rngCursor.
   const tracked = trackRng(rng, next.rngCursor);
 
-  // 1. Date +1 week, tickIndex++. v1 dt is always one week; do not echo an unapplied dt.
+  // 1. Date +1 week, tickIndex++. Tension tracks last schedule point at <= date, 0.15/week.
   void dt;
   next.tickIndex += 1;
   next.date = addDaysUtc(next.date, 7);
+  next.worldTension = stepWorldTension(
+    next.worldTension,
+    next.date,
+    world.tensionSchedule,
+  );
 
   const ids = Object.keys(next.nations).sort();
   for (const id of ids) {
@@ -577,6 +589,9 @@ export function tick(
     if (!nation || !nation.alive) continue;
     stepNation(nation, next, world, tracked);
   }
+
+  // 11. Non-player slider writes; AI is not billed PP.
+  stepAiPolicies(next);
 
   next.rngCursor = tracked.cursor();
   assertFiniteStocks(next);

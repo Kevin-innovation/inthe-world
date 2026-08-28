@@ -292,6 +292,7 @@ export interface Rng {
 
 export interface WorldView {
   resourceBase: Record<CountryId, ResourceStocks>;
+  tensionSchedule: { at: string; value: number }[];
 }
 
 export interface GameDate {

@@ -95,7 +95,10 @@ export const seasonDefinitionSchema = z.object({
   blurbKey: z.string().min(1),
   start: isoDateSchema,
   end: isoDateSchema,
-  tensionSchedule: z.array(tensionPointSchema),
+  tensionSchedule: z.array(tensionPointSchema).refine(
+    (rows) => new Set(rows.map((row) => row.at)).size === rows.length,
+    { message: "duplicate tension schedule date" },
+  ),
   countrySetup: z.string().min(1),
   regionSetup: z.string().min(1),
   eventPack: z.array(z.string()).default([]),

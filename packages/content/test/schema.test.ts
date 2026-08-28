@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   countrySchema,
   regionsFileSchema,
+  seasonDefinitionSchema,
   tensionPointSchema,
 } from "../src/schema";
 import { loadComingStormPack } from "../src/load";
@@ -81,6 +82,33 @@ describe("tension schema", () => {
       tensionPointSchema.safeParse({
         at: "1936-03-01",
         value: Number.POSITIVE_INFINITY,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects duplicate tension schedule dates", () => {
+    const pack = loadComingStormPack();
+    const point = { at: "1936-03-01", value: 16 };
+    const base = {
+      id: pack.id,
+      titleKey: pack.titleKey,
+      blurbKey: pack.blurbKey,
+      start: pack.start,
+      end: pack.end,
+      countrySetup: pack.countrySetup,
+      regionSetup: pack.regionSetup,
+      eventPack: pack.eventPack,
+    };
+    expect(
+      seasonDefinitionSchema.safeParse({
+        ...base,
+        tensionSchedule: [point],
+      }).success,
+    ).toBe(true);
+    expect(
+      seasonDefinitionSchema.safeParse({
+        ...base,
+        tensionSchedule: [point, { ...point, value: 40 }],
       }).success,
     ).toBe(false);
   });
