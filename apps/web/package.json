@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@simul/db": "workspace:*",
     "@simul/sim": "workspace:*",
     "next": "15.5.7",
     "react": "19.1.0",

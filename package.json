@@ -7,7 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "pnpm --filter @simul/sim test",
+    "test": "pnpm --filter @simul/sim --filter @simul/db test",
     "typecheck": "pnpm -r typecheck",
     "dev": "pnpm --filter web dev"
   }
