@@ -1,5 +1,5 @@
 import { runCampaignPulses, writePaperStrength } from "./combat";
-import { resolveEnding } from "./endings";
+import { compositeOf, ownedRegionCount, resolveEnding } from "./endings";
 import { trackRng } from "./rng";
 import type {
   CountryId,
@@ -210,9 +210,17 @@ function stepTrade(
   return exportValue - importCost;
 }
 
-function collapseNation(state: GameState, nation: NationState): void {
+function collapseNation(
+  state: GameState,
+  nation: NationState,
+  reason: "h1" | "h3" | "h4",
+): void {
   nation.alive = false;
   nation.runStats.collapseWeek = state.tickIndex;
+  nation.flags.failedState = 1;
+  if (reason === "h1") nation.flags.h1Fired = 1;
+  if (reason === "h3") nation.flags.h3Fired = 1;
+  if (reason === "h4") nation.flags.h4Fired = 1;
   if (nation.isPlayer) {
     state.status = "ended";
   }
@@ -224,7 +232,34 @@ function addSpirit(nation: NationState, id: string): void {
   }
 }
 
-function updateRunStats(nation: NationState): void {
+function updateRegionExtrema(nation: NationState, state: GameState): void {
+  const rs = nation.runStats;
+  const owned = ownedRegionCount(state, nation.id);
+  const start = rs.startRegions;
+  // Empty two-nation maps have no territory; 0/0 is not a phoenix trough.
+  if (start <= 0 && owned <= 0) return;
+  rs.peakRegions = Math.max(rs.peakRegions, owned);
+  if (start > 0) {
+    const prev = rs.troughRegions > 0 ? rs.troughRegions : start;
+    rs.troughRegions = Math.min(prev, owned);
+  }
+}
+
+function updateCompositeExtrema(nation: NationState, state: GameState): void {
+  // Dead composite is 0 via independenceFactor; do not clobber the living trough.
+  if (!nation.alive) return;
+  const c = compositeOf(nation, state);
+  const rs = nation.runStats;
+  if (rs.peakComposite <= 0 && rs.troughComposite <= 0) {
+    rs.peakComposite = c;
+    rs.troughComposite = c;
+    return;
+  }
+  rs.peakComposite = Math.max(rs.peakComposite, c);
+  rs.troughComposite = Math.min(rs.troughComposite, c);
+}
+
+function updateRunStats(nation: NationState, state: GameState): void {
   const rs = nation.runStats;
   const st = nation.stocks;
   rs.peakStability = Math.max(rs.peakStability, st.stability);
@@ -235,6 +270,8 @@ function updateRunStats(nation: NationState): void {
   rs.weeksAlive += 1;
   if (nation.independent) rs.weeksIndependent += 1;
   if (nation.atWarWith.length > 0) rs.weeksAtWar += 1;
+  updateRegionExtrema(nation, state);
+  updateCompositeExtrema(nation, state);
 }
 
 function stepHardFails(
@@ -267,7 +304,7 @@ function stepHardFails(
   }
 
   if (flagNumber(flags, "h4Weeks") >= 8) {
-    collapseNation(state, nation);
+    collapseNation(state, nation, "h4");
     return;
   }
 
@@ -288,7 +325,7 @@ function stepHardFails(
       flags.h3CollapseWeeks = 0;
     }
     if (flagNumber(flags, "h3CollapseWeeks") >= 4) {
-      collapseNation(state, nation);
+      collapseNation(state, nation, "h3");
       return;
     }
   }
@@ -299,7 +336,7 @@ function stepHardFails(
         ? nation.runStats.startArmy
         : stocks.armySize;
     if (stocks.warSupport < 30 && stocks.armySize < 0.4 * startArmy) {
-      collapseNation(state, nation);
+      collapseNation(state, nation, "h1");
       return;
     }
     nation.runStats.hadRevolution = true;
@@ -563,7 +600,7 @@ function stepNation(
   stocks.warSupport = clamp(stocks.warSupport + wsDelta, 0, 100);
 
   // 15. Hard fails + runStats
-  updateRunStats(nation);
+  updateRunStats(nation, state);
   stepHardFails(nation, state, extract.food);
 }
 
@@ -598,6 +635,14 @@ export function tick(
   // Pulses read this week's paper; losing/winning flags land in time for next week's stab/ws.
   writePaperStrength(next);
   const newspapers = runCampaignPulses(next, tracked);
+
+  // Combat can flip owners after stepNation; region troughs must see this week's map.
+  for (const id of ids) {
+    const nation = next.nations[id];
+    if (!nation) continue;
+    updateRegionExtrema(nation, next);
+    updateCompositeExtrema(nation, next);
+  }
 
   next.rngCursor = tracked.cursor();
   assertFiniteStocks(next);

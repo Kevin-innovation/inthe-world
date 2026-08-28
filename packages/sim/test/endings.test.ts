@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  createRng,
   makeTwoNationState,
   resolveEnding,
+  tick,
+  twoNationWorld,
   type GameState,
   type NationState,
   type RegionState,
@@ -132,5 +135,43 @@ describe("resolveEnding predicates", () => {
     eth.runStats.troughStability = 40;
     eth.derived.forceProjection = 1;
     expect(resolveEnding(state, "ETH").id).toBe("survivor");
+  });
+});
+
+describe("tick runStats extrema", () => {
+  it("records troughRegions and composite swing after a live tick", () => {
+    const world = twoNationWorld();
+    let state = makeTwoNationState(3);
+    const eth0 = nation(state, "ETH");
+    eth0.runStats.startRegions = 4;
+    eth0.runStats.peakRegions = 4;
+    eth0.runStats.troughRegions = 4;
+    paintOwned(state, "ETH", 4, true);
+
+    const rng = createRng(state.seed, state.rngCursor);
+    state = tick(state, 1, world, rng).state;
+    const afterFirst = nation(state, "ETH");
+    expect(afterFirst.runStats.peakComposite).toBeGreaterThan(0);
+    expect(afterFirst.runStats.troughComposite).toBeGreaterThan(0);
+    const peakAfterFirst = afterFirst.runStats.peakComposite;
+    expect(afterFirst.runStats.troughRegions).toBe(4);
+
+    afterFirst.stocks.gdp = Math.max(afterFirst.stocks.gdp * 0.2, 0.5);
+    for (const region of Object.values(state.regions)) {
+      if (region.owner === "ETH" && region.id !== afterFirst.capitalRegion) {
+        region.owner = "USA";
+        region.controller = "USA";
+      }
+    }
+
+    state = tick(state, 1, world, rng).state;
+    const afterLoss = nation(state, "ETH");
+    expect(afterLoss.runStats.troughRegions).toBe(1);
+    expect(afterLoss.runStats.troughComposite).toBeLessThan(
+      afterLoss.runStats.peakComposite,
+    );
+    expect(afterLoss.runStats.peakComposite).toBeGreaterThanOrEqual(
+      peakAfterFirst,
+    );
   });
 });

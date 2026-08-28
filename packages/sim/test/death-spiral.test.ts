@@ -4,6 +4,7 @@ import {
   makeMiniWarOvermobilize,
   makeTwoNationState,
   miniWarWorld,
+  resolveEnding,
   tick,
   twoNationWorld,
   type GameState,
@@ -116,6 +117,7 @@ describe("H1 uses start army, not peak", () => {
     if (!eth) throw new Error("missing ETH");
     expect(eth.alive).toBe(false);
     expect(eth.runStats.collapseWeek).toBe(4);
+    expect(resolveEnding(current, "ETH").id).toBe("collapse");
   });
 });
 
@@ -142,6 +144,7 @@ describe("H4 famine is post-consume food with no harvest", () => {
     const eth = current.nations.ETH;
     if (!eth) throw new Error("missing ETH");
     expect(eth.alive).toBe(false);
+    expect(resolveEnding(current, "ETH").id).toBe("collapse");
   });
 
   it("does not count harvest-and-eat-all as famine", () => {

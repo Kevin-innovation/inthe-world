@@ -197,13 +197,21 @@ function h4Fired(nation: NationState): boolean {
   );
 }
 
+function h1Collapsed(nation: NationState): boolean {
+  // Revolution resets h1Weeks and stays alive; army-collapse leaves the flag.
+  return (
+    flagOn(nation.flags, "h1Fired") ||
+    (!nation.alive && flagNumber(nation.flags, "h1Weeks") >= 4)
+  );
+}
+
 function isCollapseCause(nation: NationState): boolean {
   const peakGdp = Math.max(nation.runStats.peakGdp, nation.stocks.gdp, 1e-6);
   const economic =
     nation.stocks.stability <= 5 &&
     nation.stocks.inflation >= 40 &&
     nation.stocks.gdp < 0.4 * peakGdp;
-  return h3Fired(nation) || h4Fired(nation) || economic;
+  return h1Collapsed(nation) || h3Fired(nation) || h4Fired(nation) || economic;
 }
 
 function isWipedOffMap(state: GameState, nation: NationState): boolean {
@@ -277,8 +285,8 @@ function troughRegionRatio(nation: NationState, state: GameState): number {
 
 function matchesAnnexed(state: GameState, player: NationState): boolean {
   if (isWipedOffMap(state, player)) return true;
-  // !alive is annexed unless a collapse cause fired; otherwise H3/H4 always
-  // become annexed because they set alive=false before resolveEnding.
+  // Internal hard-fails set alive=false; without this carve-out H1/H3/H4
+  // would first-match annexed (0.32) instead of collapse (0.22).
   return !player.alive && !isCollapseCause(player);
 }
 
