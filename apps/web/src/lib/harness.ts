@@ -4,29 +4,13 @@ import {
   costPP,
   createRng,
   DEFAULT_POLICIES,
-  makePeaceBalancedState,
-  seedFrom,
   tick,
-  twoNationWorld,
   type GameState,
   type PolicySliders,
   type TickResult,
   type WorldView,
 } from "@simul/sim";
 import { diffPolicies } from "./hq-model";
-
-const HARNESS_SEED = seedFrom("dev-harness", "the_coming_storm");
-
-// Pause so /dev/harness can show pendingEvent instead of silently AFK-resolving.
-export const TWO_NATION_WORLD: WorldView = {
-  ...twoNationWorld(),
-  events: [],
-  regencyPause: true,
-};
-
-export function createHarnessState(): GameState {
-  return makePeaceBalancedState(HARNESS_SEED);
-}
 
 export function playerPolicies(state: GameState): PolicySliders {
   const nation = state.nations[state.playerCountryId];
@@ -55,16 +39,16 @@ export function applyDraftPolicies(
   return applyPolicies(state, state.playerCountryId, partial);
 }
 
-export function tickWeek(state: GameState): TickResult {
+export function tickWeek(state: GameState, world: WorldView): TickResult {
   // Recreate from seed+cursor; a held generator would drift after cloned applies.
   const rng = createRng(state.seed, state.rngCursor);
-  return tick(state, 1, TWO_NATION_WORLD, rng);
+  return tick(state, 1, world, rng);
 }
 
 export function resolveHarnessEvent(
   state: GameState,
+  world: WorldView,
   choiceId: string,
 ): { state: GameState; newspapers: TickResult["newspapers"]; error?: string } {
-  return applyPendingChoice(state, TWO_NATION_WORLD, choiceId);
+  return applyPendingChoice(state, world, choiceId);
 }
-

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
@@ -58,8 +58,24 @@ export function loadSeasonPackFromFiles(paths: {
   });
 }
 
+function looksLikeContentRoot(dir: string): boolean {
+  return existsSync(join(dir, "seasons", "the_coming_storm.yaml"));
+}
+
 export function contentRoot(): string {
-  return join(dirname(fileURLToPath(import.meta.url)), "..");
+  const fromMeta = join(dirname(fileURLToPath(import.meta.url)), "..");
+  if (looksLikeContentRoot(fromMeta)) return fromMeta;
+  // Next may bundle this file away from packages/content; walk from cwd.
+  const cwd = process.cwd();
+  const candidates = [
+    join(cwd, "packages", "content"),
+    join(cwd, "..", "packages", "content"),
+    join(cwd, "..", "..", "packages", "content"),
+  ];
+  for (const dir of candidates) {
+    if (looksLikeContentRoot(dir)) return dir;
+  }
+  return fromMeta;
 }
 
 export function loadComingStormPack(): SeasonPack {

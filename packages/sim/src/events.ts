@@ -1,3 +1,4 @@
+import { assertFiniteStocks, cloneGameState } from "./clone";
 import type {
   ChronicleEntry,
   CountryId,
@@ -27,10 +28,6 @@ const FACTIONS: ReadonlySet<FactionId> = new Set([
 ]);
 
 export const FIRED_FLAG_PREFIX = "evt_";
-
-function cloneState(state: GameState): GameState {
-  return JSON.parse(JSON.stringify(state)) as GameState;
-}
 
 function clamp(x: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, x));
@@ -514,9 +511,17 @@ export function applyEventChoice(
   event: EventDefinition,
   countryId: CountryId,
   choiceId: string,
+  opts?: { autoForPlayer?: boolean },
 ): { state: GameState; newspapers: ChronicleEntry[] } {
-  const next = cloneState(state);
-  const newspapers = applyEventChoiceInPlace(next, event, countryId, choiceId);
+  const next = cloneGameState(state);
+  const newspapers = applyEventChoiceInPlace(
+    next,
+    event,
+    countryId,
+    choiceId,
+    opts,
+  );
+  assertFiniteStocks(next);
   return { state: next, newspapers };
 }
 
@@ -534,14 +539,14 @@ export function applyPendingChoice(
 ): { state: GameState; newspapers: ChronicleEntry[]; error?: string } {
   const pending = state.pendingEvent;
   if (!pending) {
-    return { state: cloneState(state), newspapers: [], error: "no_pending" };
+    return { state: cloneGameState(state), newspapers: [], error: "no_pending" };
   }
   const event = findEvent(world.events, pending.eventId);
   if (!event) {
-    return { state: cloneState(state), newspapers: [], error: "unknown_event" };
+    return { state: cloneGameState(state), newspapers: [], error: "unknown_event" };
   }
   if (!event.choices.some((row) => row.id === choiceId)) {
-    return { state: cloneState(state), newspapers: [], error: "unknown_choice" };
+    return { state: cloneGameState(state), newspapers: [], error: "unknown_choice" };
   }
   return applyEventChoice(state, event, pending.countryId, choiceId);
 }

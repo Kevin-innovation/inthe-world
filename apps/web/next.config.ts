@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
 
 const config: NextConfig = {
-  transpilePackages: ["@simul/sim", "@simul/db"],
+  transpilePackages: ["@simul/sim", "@simul/db", "@simul/content"],
   // Direct apps/web dep + external so the native .node is require()'d, not bundled.
   serverExternalPackages: ["better-sqlite3"],
   // Monorepo: trace files from the workspace root, not apps/web.
@@ -15,6 +15,12 @@ const config: NextConfig = {
     "/api/*": ["../../packages/db/drizzle/**/*"],
     "/api/*/*": ["../../packages/db/drizzle/**/*"],
     "/api/*/*/*": ["../../packages/db/drizzle/**/*"],
+    "/dev/harness": [
+      "../../packages/content/seasons/**/*",
+      "../../packages/content/countries/**/*",
+      "../../packages/content/regions/**/*",
+      "../../packages/content/events/**/*",
+    ],
   },
 };
 

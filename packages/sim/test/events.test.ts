@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { loadComingStormPack } from "@simul/content/load";
 import {
   FIRED_FLAG_PREFIX,
+  applyEventChoice,
   autoResolve,
   createRng,
   DEFAULT_POLICIES,
@@ -144,6 +145,62 @@ describe("date triggers", () => {
       eventId: "anschluss",
       countryId: "GER",
     });
+  });
+
+  it("writes a regency newspaper when the player AFK-resolves", () => {
+    const pack = loadComingStormPack();
+    const { state, world } = loadSeason(pack, {
+      saveId: "regency",
+      seed: 1,
+      playerCountryId: "GER",
+    });
+    state.date = { year: 1938, month: 3, day: 1 };
+    const result = tick(
+      state,
+      1,
+      world,
+      createRng(state.seed, state.rngCursor),
+    );
+    expect(result.interrupted).toBe(false);
+    expect(result.state.pendingEvent).toBeUndefined();
+    expect(
+      result.newspapers.some(
+        (row) => row.kind === "event" && row.args.eventId === "anschluss",
+      ),
+    ).toBe(true);
+    expect(result.newspapers.some((row) => row.kind === "regency")).toBe(true);
+  });
+});
+
+describe("applyEventChoice", () => {
+  it("reuses cloneGameState and rejects non-finite stocks", () => {
+    const state = makeTwoNationState(1);
+    const usa = state.nations.USA;
+    if (!usa) throw new Error("missing USA");
+    usa.stocks.food = Number.NaN;
+    const event = testEvent([
+      choice({ id: "safe", risk: 0.1 }),
+      choice({ id: "danger", risk: 0.4 }),
+    ]);
+    expect(() => applyEventChoice(state, event, "USA", "safe")).toThrow(
+      /error_tick_nan: USA\.food/,
+    );
+  });
+
+  it("emits a regency paper when autoForPlayer and the actor is the player", () => {
+    const state = makeTwoNationState(1);
+    const event = testEvent([
+      choice({ id: "safe", risk: 0.1 }),
+      choice({ id: "danger", risk: 0.4 }),
+    ]);
+    const applied = applyEventChoice(state, event, "USA", "safe", {
+      autoForPlayer: true,
+    });
+    expect(applied.newspapers.some((row) => row.kind === "event")).toBe(true);
+    expect(applied.newspapers.some((row) => row.kind === "regency")).toBe(true);
+    expect(applied.state.nations.USA?.flags[`${FIRED_FLAG_PREFIX}test_event`]).toBe(
+      applied.state.tickIndex,
+    );
   });
 });
 

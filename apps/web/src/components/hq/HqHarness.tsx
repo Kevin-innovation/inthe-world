@@ -7,16 +7,15 @@ import type {
   GameState,
   NationStocks,
   PolicySliders,
+  WorldView,
 } from "@simul/sim";
 import { findEvent } from "@simul/sim";
 import {
   applyDraftPolicies,
-  createHarnessState,
   playerPolicies,
   previewPolicyCost,
   resolveHarnessEvent,
   tickWeek,
-  TWO_NATION_WORLD,
 } from "@/lib/harness";
 import {
   DOCTRINES,
@@ -138,8 +137,14 @@ function EventModal({
   );
 }
 
-export function HqHarness() {
-  const [state, setState] = useState<GameState>(createHarnessState);
+export function HqHarness({
+  initialState,
+  world,
+}: {
+  initialState: GameState;
+  world: WorldView;
+}) {
+  const [state, setState] = useState<GameState>(initialState);
   // Copy policies so range handlers cannot mutate the committed GameState object.
   const [draft, setDraft] = useState<PolicySliders>(() => playerPolicies(state));
   const [papers, setPapers] = useState<ChronicleEntry[]>([]);
@@ -153,7 +158,7 @@ export function HqHarness() {
   function onNextWeek() {
     if (state.pendingEvent) return;
     try {
-      const result = tickWeek(state);
+      const result = tickWeek(state, world);
       setState(result.state);
       if (result.newspapers.length > 0) {
         setPapers((prev) => [...result.newspapers, ...prev].slice(0, 24));
@@ -165,7 +170,7 @@ export function HqHarness() {
   }
 
   function onEventChoice(choiceId: string) {
-    const result = resolveHarnessEvent(state, choiceId);
+    const result = resolveHarnessEvent(state, world, choiceId);
     if (result.error) {
       setError(t("hq.eventResolveFailed"));
       return;
@@ -203,7 +208,7 @@ export function HqHarness() {
       ? papers.slice(0, 16)
       : [...state.chronicle].reverse().slice(0, 16);
   const pendingEvent = state.pendingEvent
-    ? findEvent(TWO_NATION_WORLD.events, state.pendingEvent.eventId)
+    ? findEvent(world.events, state.pendingEvent.eventId)
     : undefined;
 
   return (

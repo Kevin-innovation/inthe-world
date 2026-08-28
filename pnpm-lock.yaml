@@ -10,6 +10,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@simul/content':
+        specifier: workspace:*
+        version: link:../../packages/content
       '@simul/db':
         specifier: workspace:*
         version: link:../../packages/db

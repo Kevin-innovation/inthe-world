@@ -139,7 +139,9 @@ function applyCatchupTicks(state: GameState, weeks: number): {
         );
         result = {
           ...result,
-          ...applyEventChoice(result.state, def, pending.countryId, choice.id),
+          ...applyEventChoice(result.state, def, pending.countryId, choice.id, {
+            autoForPlayer: nation.isPlayer,
+          }),
           interrupted: false,
           interruptReason: undefined,
         };
