@@ -179,7 +179,7 @@ pnpm --filter web dev
 1. Convex: `npx convex deploy` (CI는 대시보드의 `CONVEX_DEPLOY_KEY`)
 2. Vercel: 저장소 루트, Node 22, `vercel.json`이 `pnpm --filter web build`를 돌린다.
 
-환경 변수: `NEXT_PUBLIC_CONVEX_URL`, `CONVEX_URL` (같은 Convex URL).
+환경 변수: `NEXT_PUBLIC_CONVEX_URL`, `CONVEX_URL` (같은 Convex URL). 이 값이 없으면 게스트 배정은 쿠키로만 동작하고, 탭을 닫으면 세이브가 서버에 남지 않는다.
 
 ### 레이아웃
 

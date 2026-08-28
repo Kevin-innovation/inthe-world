@@ -1,8 +1,16 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { loadComingStormPack } from "@simul/content/load";
 import { applyFateSpends, countryWeights, loadSeason } from "@simul/sim";
-import { api, getConvex } from "@/lib/convex-server";
-import { readGuestCookie, readJsonBody, setGuestCookie } from "@/lib/guest-cookie";
+import { api, tryGetConvex } from "@/lib/convex-server";
+import {
+  clearDraftCookie,
+  readDraftCookie,
+  readGuestCookie,
+  readJsonBody,
+  setGuestCookie,
+  setRunCookie,
+} from "@/lib/guest-cookie";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,7 +45,56 @@ export async function POST(request: Request) {
     : undefined;
   const ranked = body.ranked === false ? false : true;
 
-  const convex = getConvex();
+  const convex = tryGetConvex();
+  if (!convex) {
+    const draft = await readDraftCookie();
+    if (!draft || draft.assignmentId !== assignmentId) {
+      return NextResponse.json({ error: "assignment_not_found" }, { status: 404 });
+    }
+    const guestId = (await readGuestCookie()) ?? randomUUID();
+    const pack = loadComingStormPack();
+    const loaded = loadSeason(pack, {
+      saveId: assignmentId,
+      seed: draft.seed,
+      playerCountryId: draft.countryId,
+    });
+    loaded.state.ranked = false;
+    const fate = applyFateSpends(
+      loaded.state,
+      draft.countryId,
+      countryWeights(pack.countries),
+      { civDelta, milDelta, spiritId, spiritTags },
+    );
+    if (fate.error) {
+      const res = NextResponse.json({ error: fate.error }, { status: 400 });
+      setGuestCookie(res, guestId);
+      return res;
+    }
+    const res = NextResponse.json({
+      id: assignmentId,
+      guestId,
+      seasonId: pack.id,
+      countryId: draft.countryId,
+      seed: draft.seed,
+      tickIndex: fate.state.tickIndex,
+      status: "active",
+      ranked: false,
+      fateRemaining: fate.fateRemaining,
+      demo: true,
+    });
+    setGuestCookie(res, guestId);
+    setRunCookie(res, {
+      saveId: assignmentId,
+      countryId: draft.countryId,
+      seed: draft.seed,
+      civDelta,
+      milDelta,
+      spiritId,
+    });
+    clearDraftCookie(res);
+    return res;
+  }
+
   const { guestId } = await convex.mutation(api.guests.ensure, {
     cookieId: await readGuestCookie(),
   });

@@ -9,8 +9,12 @@ import {
   seedFrom,
   weightTier,
 } from "@simul/sim";
-import { api, getConvex } from "@/lib/convex-server";
-import { readGuestCookie, setGuestCookie } from "@/lib/guest-cookie";
+import { api, tryGetConvex } from "@/lib/convex-server";
+import {
+  readGuestCookie,
+  setDraftCookie,
+  setGuestCookie,
+} from "@/lib/guest-cookie";
 import { t } from "@/lib/i18n";
 
 export const runtime = "nodejs";
@@ -73,40 +77,54 @@ export async function POST() {
       createRng(seed, 0),
     );
 
-    const convex = getConvex();
-    const { guestId } = await convex.mutation(api.guests.ensure, {
-      cookieId: await readGuestCookie(),
-    });
-    const started = await convex.mutation(api.assignments.start, {
-      guestId,
-      seasonId: pack.id,
-      id: assignmentId,
-      countryId,
-      seed,
-      lore: loreFor(countryId),
-    });
+    const convex = tryGetConvex();
+    if (convex) {
+      try {
+        const { guestId } = await convex.mutation(api.guests.ensure, {
+          cookieId: await readGuestCookie(),
+        });
+        const started = await convex.mutation(api.assignments.start, {
+          guestId,
+          seasonId: pack.id,
+          id: assignmentId,
+          countryId,
+          seed,
+          lore: loreFor(countryId),
+        });
 
-    if (started.type === "active_run") {
-      const res = NextResponse.json(
-        {
-          error: "active_run",
-          saveId: started.saveId,
-          countryId: started.countryId,
-        },
-        { status: 409 },
-      );
-      setGuestCookie(res, guestId);
-      return res;
+        if (started.type === "active_run") {
+          const res = NextResponse.json(
+            {
+              error: "active_run",
+              saveId: started.saveId,
+              countryId: started.countryId,
+            },
+            { status: 409 },
+          );
+          setGuestCookie(res, guestId);
+          return res;
+        }
+
+        const res = NextResponse.json(
+          assignmentPayload({
+            assignmentId: started.assignment.id,
+            countryId: started.assignment.countryId,
+            seed: started.assignment.seed,
+          }),
+        );
+        setGuestCookie(res, guestId);
+        return res;
+      } catch (err) {
+        console.warn("convex assign unavailable, using guest draft", err);
+      }
     }
 
+    const guestId = (await readGuestCookie()) ?? randomUUID();
     const res = NextResponse.json(
-      assignmentPayload({
-        assignmentId: started.assignment.id,
-        countryId: started.assignment.countryId,
-        seed: started.assignment.seed,
-      }),
+      assignmentPayload({ assignmentId, countryId, seed }),
     );
     setGuestCookie(res, guestId);
+    setDraftCookie(res, { assignmentId, countryId, seed });
     return res;
   } catch (err) {
     return convexErrorResponse(err);
