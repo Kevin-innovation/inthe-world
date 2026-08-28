@@ -1,0 +1,11 @@
+id: the_coming_storm
+titleKey: season.comingStorm.title
+blurbKey: season.comingStorm.blurb
+start: 1936-03-01
+end: 1948-12-31
+tensionSchedule:
+  - { at: 1936-03-01, value: 16 }
+  - { at: 1939-09-01, value: 40 }
+countrySetup: countries/1936.yaml
+regionSetup: regions/1936.yaml
+eventPack: []

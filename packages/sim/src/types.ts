@@ -179,6 +179,7 @@ export interface EndingResolution {
 export interface GameState {
   saveId: string;
   seasonId: SeasonId;
+  contentHash: string; // FNV-1a hex of season pack; ignored by tick
   seed: number;
   rngCursor: number;
   tickIndex: number;

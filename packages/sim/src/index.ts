@@ -34,6 +34,8 @@ export type {
 export { createRng, mulberry32, seedFrom, trackRng } from "./rng";
 export type { CursorRng } from "./rng";
 export { addDaysUtc, tick } from "./tick";
+export { loadSeason } from "./loadSeason";
+export type { LoadSeasonOpts, SeasonPack } from "./loadSeason";
 export {
   DEFAULT_POLICIES,
   makeTwoNationState,

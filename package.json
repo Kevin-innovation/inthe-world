@@ -7,7 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "pnpm --filter @simul/sim test",
-    "typecheck": "pnpm --filter @simul/sim typecheck"
+    "test": "pnpm --filter @simul/sim --filter @simul/content test",
+    "typecheck": "pnpm --filter @simul/sim --filter @simul/content typecheck"
   }
 }
