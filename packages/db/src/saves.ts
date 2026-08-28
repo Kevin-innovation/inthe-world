@@ -9,6 +9,7 @@ import {
   worldFromPack,
   type GameState,
 } from "@simul/sim";
+import { consumeAssignment, getAssignment } from "./assignments";
 import { planCatchupWeeks } from "./catchup";
 import { guests, saves } from "./schema";
 import type { DbHandle, SimulDb } from "./sqlite";
@@ -154,6 +155,50 @@ export function findActiveSave(
     .from(saves)
     .where(and(eq(saves.guestId, guestId), eq(saves.status, "active")))
     .get();
+}
+
+export type ConfirmAssignmentResult =
+  | { ok: true; save: SaveRecord }
+  | {
+      ok: false;
+      httpStatus: 409;
+      error: "active_run";
+      saveId: string;
+      countryId: string;
+    }
+  | { ok: false; httpStatus: 404; error: "assignment_not_found" };
+
+export function confirmAssignment(
+  db: SimulDb,
+  input: {
+    guestId: string;
+    assignmentId: string;
+    state: GameState;
+    nowMs?: number;
+  },
+): ConfirmAssignmentResult {
+  const active = findActiveSave(db, input.guestId);
+  if (active) {
+    return {
+      ok: false,
+      httpStatus: 409,
+      error: "active_run",
+      saveId: active.id,
+      countryId: active.countryId,
+    };
+  }
+  const draft = getAssignment(input.assignmentId);
+  if (!draft || draft.guestId !== input.guestId || draft.consumed) {
+    return { ok: false, httpStatus: 404, error: "assignment_not_found" };
+  }
+  // Persist first so a failed insert leaves the draft reusable instead of rolling a new country.
+  const save = insertGameSave(db, {
+    guestId: input.guestId,
+    state: input.state,
+    nowMs: input.nowMs,
+  });
+  consumeAssignment(input.assignmentId, input.guestId);
+  return { ok: true, save };
 }
 
 function parseState(json: string): GameState {

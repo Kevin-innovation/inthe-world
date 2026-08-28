@@ -7,6 +7,7 @@ import {
   findActiveSave,
   findOpenAssignment,
   getDefaultDb,
+  withGuestLock,
 } from "@simul/db";
 import {
   FATE_BUDGET,
@@ -60,48 +61,51 @@ export async function POST() {
   const handle = getDefaultDb();
   const nowMs = Date.now();
   const { guestId } = ensureGuest(handle.db, await readGuestCookie(), nowMs);
+  const pack = loadComingStormPack();
+  const payload = await withGuestLock(guestId, () => {
+    const lockedActive = findActiveSave(handle.db, guestId);
+    if (lockedActive) {
+      return {
+        conflict: true as const,
+        saveId: lockedActive.id,
+        countryId: lockedActive.countryId,
+      };
+    }
+    const existing = findOpenAssignment(guestId, pack.id);
+    if (existing) {
+      return assignmentPayload({
+        assignmentId: existing.id,
+        countryId: existing.countryId,
+        seed: existing.seed,
+      });
+    }
+    const assignmentId = randomUUID();
+    const seed = seedFrom(assignmentId, pack.id);
+    const countryId = assignCountry(
+      countryWeights(pack.countries),
+      createRng(seed, 0),
+    );
+    createAssignment({
+      id: assignmentId,
+      guestId,
+      seasonId: pack.id,
+      countryId,
+      seed,
+      createdAt: nowMs,
+    });
+    return assignmentPayload({ assignmentId, countryId, seed });
+  });
 
-  const active = findActiveSave(handle.db, guestId);
-  if (active) {
+  if ("conflict" in payload && payload.conflict) {
     const res = NextResponse.json(
-      { error: "active_run", saveId: active.id, countryId: active.countryId },
+      { error: "active_run", saveId: payload.saveId, countryId: payload.countryId },
       { status: 409 },
     );
     setGuestCookie(res, guestId);
     return res;
   }
 
-  const pack = loadComingStormPack();
-  const existing = findOpenAssignment(guestId, pack.id);
-  if (existing) {
-    const res = NextResponse.json(
-      assignmentPayload({
-        assignmentId: existing.id,
-        countryId: existing.countryId,
-        seed: existing.seed,
-      }),
-    );
-    setGuestCookie(res, guestId);
-    return res;
-  }
-
-  const assignmentId = randomUUID();
-  const seed = seedFrom(assignmentId, pack.id);
-  const countryId = assignCountry(
-    countryWeights(pack.countries),
-    createRng(seed, 0),
-  );
-  createAssignment({
-    id: assignmentId,
-    guestId,
-    seasonId: pack.id,
-    countryId,
-    seed,
-    createdAt: nowMs,
-  });
-  const res = NextResponse.json(
-    assignmentPayload({ assignmentId, countryId, seed }),
-  );
+  const res = NextResponse.json(payload);
   setGuestCookie(res, guestId);
   return res;
 }

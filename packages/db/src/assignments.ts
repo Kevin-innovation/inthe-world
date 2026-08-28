@@ -19,9 +19,28 @@ function store(): Map<string, AssignmentDraft> {
   return globalForAssign.__simulAssignments;
 }
 
+const guestLocks = new Map<string, Promise<unknown>>();
+
+export function withGuestLock<T>(guestId: string, fn: () => T): Promise<T> {
+  const prev = guestLocks.get(guestId) ?? Promise.resolve();
+  const run = prev.then(fn, fn);
+  guestLocks.set(
+    guestId,
+    run.then(
+      () => undefined,
+      () => undefined,
+    ),
+  );
+  return run;
+}
+
 export function createAssignment(
   input: Omit<AssignmentDraft, "consumed">,
 ): AssignmentDraft {
+  // One open draft per guest+season; a second tab must reuse, not mint another country.
+  if (findOpenAssignment(input.guestId, input.seasonId)) {
+    throw new Error("open_assignment");
+  }
   const row: AssignmentDraft = { ...input, consumed: false };
   store().set(row.id, row);
   return row;

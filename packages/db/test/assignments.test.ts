@@ -20,6 +20,18 @@ describe("assignment drafts", () => {
     expect(getAssignment(created.id)?.countryId).toBe("ETH");
     expect(findOpenAssignment(guestId, "the_coming_storm")?.id).toBe(created.id);
 
+    expect(() =>
+      createAssignment({
+        id: "assign-1-dup",
+        guestId,
+        seasonId: "the_coming_storm",
+        countryId: "USA",
+        seed: 10,
+        createdAt: 2,
+      }),
+    ).toThrow(/open_assignment/);
+    expect(findOpenAssignment(guestId, "the_coming_storm")?.id).toBe(created.id);
+
     const first = consumeAssignment(created.id, guestId);
     expect(first?.consumed).toBe(true);
     expect(consumeAssignment(created.id, guestId)).toBeUndefined();

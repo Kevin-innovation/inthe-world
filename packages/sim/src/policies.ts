@@ -209,7 +209,6 @@ export function applyFateSpends(
       ...(spend.spiritTags ?? []),
       ...inferSpiritTags(spiritId, weights),
     ]);
-    // ETH (weight 11) must not receive a USA/great-power spirit from fate.
     if (tags.has(GREAT_POWER_TAG) && weightTier(row.weight) === "minor") {
       return { ...empty, error: "great_power_spirit" };
     }
