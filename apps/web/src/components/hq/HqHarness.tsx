@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type {
   ChronicleEntry,
   GameState,
@@ -59,6 +59,28 @@ function StatCells({
   ));
   if (asChips) return <div className="hq-chips">{items}</div>;
   return <div className="hq-stat-grid">{items}</div>;
+}
+
+function PolicyDetails({
+  defaultOpen = false,
+  children,
+}: {
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  // Native <details open> is a controlled attr in React and resets on parent re-render.
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <details
+      open={open}
+      onToggle={(event) => {
+        const next = event.currentTarget.open;
+        setOpen((current) => (current === next ? current : next));
+      }}
+    >
+      {children}
+    </details>
+  );
 }
 
 function NewspaperList({ entries }: { entries: ChronicleEntry[] }) {
@@ -182,7 +204,7 @@ export function HqHarness() {
           {error ? <p className="hq-error">{error}</p> : null}
           <div className="hq-accordion">
             {POLICY_GROUPS.map((group) => (
-              <details key={group.id} open={group.id === "economy"}>
+              <PolicyDetails key={group.id} defaultOpen={group.id === "economy"}>
                 <summary>{t(`policy.group.${group.id}`)}</summary>
                 {group.fields.map((field) => {
                   if (field.kind === "doctrine") {
@@ -228,7 +250,7 @@ export function HqHarness() {
                     </div>
                   );
                 })}
-              </details>
+              </PolicyDetails>
             ))}
           </div>
         </section>
