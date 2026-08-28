@@ -84,6 +84,7 @@ export interface RunStats {
   troughStability: number;
   peakGdp: number;
   troughGdp: number;
+  peakArmy: number;
   peakComposite: number;
   troughComposite: number;
   peakRegions: number;
@@ -109,6 +110,8 @@ export interface NationState {
   stocks: NationStocks;
   derived: DerivedStats;
   policies: PolicySliders;
+  civBuildPts: number;
+  milBuildPts: number;
   spirits: string[];
   focus: { id: string; weeksRemaining: number; weeksTotal: number } | null;
   faction: FactionId;

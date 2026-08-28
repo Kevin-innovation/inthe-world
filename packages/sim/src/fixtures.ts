@@ -28,6 +28,40 @@ export const DEFAULT_POLICIES: PolicySliders = {
   researchSoc: 30,
 };
 
+export const USA_1936_PEACE_BALANCED: PolicySliders = {
+  taxRate: 24,
+  industrialFocus: 28,
+  tradeOpenness: 50,
+  conscription: 18,
+  doctrine: "defense",
+  milSpending: 18,
+  liberty: 55,
+  propaganda: 20,
+  intervention: 20,
+  alignmentLean: 0,
+  welfare: 50,
+  researchMil: 25,
+  researchInd: 45,
+  researchSoc: 30,
+};
+
+export const MINI_WAR_OVERMOBILIZE: PolicySliders = {
+  taxRate: 36,
+  industrialFocus: 80,
+  tradeOpenness: 0,
+  conscription: 90,
+  doctrine: "offense",
+  milSpending: 80,
+  liberty: 25,
+  propaganda: 10,
+  intervention: 70,
+  alignmentLean: 0,
+  welfare: 15,
+  researchMil: 70,
+  researchInd: 15,
+  researchSoc: 15,
+};
+
 function clamp(x: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, x));
 }
@@ -53,6 +87,7 @@ function runStatsFrom(stocks: NationStocks): RunStats {
     troughStability: stocks.stability,
     peakGdp: stocks.gdp,
     troughGdp: stocks.gdp,
+    peakArmy: stocks.armySize,
     peakComposite: 0,
     troughComposite: 0,
     peakRegions: 0,
@@ -111,6 +146,8 @@ function makeNation(args: {
     stocks,
     derived: derivedFrom(stocks, args.faction),
     policies: { ...DEFAULT_POLICIES },
+    civBuildPts: 0,
+    milBuildPts: 0,
     spirits: [],
     focus: null,
     faction: args.faction,
@@ -222,4 +259,39 @@ export function makeTwoNationState(seed: number): GameState {
     status: "active",
     ranked: false,
   };
+}
+
+export function makePeaceBalancedState(seed: number): GameState {
+  const state = makeTwoNationState(seed);
+  const usa = state.nations.USA;
+  if (usa) {
+    usa.policies = { ...USA_1936_PEACE_BALANCED };
+    usa.atWarWith = [];
+  }
+  return state;
+}
+
+export function miniWarWorld(): WorldView {
+  return {
+    resourceBase: {
+      USA: { ...USA_BASE },
+      ETH: { food: 3, steel: 0.2, oil: 0.2, rares: 0.2 },
+    },
+  };
+}
+
+export function makeMiniWarOvermobilize(seed: number): GameState {
+  const state = makeTwoNationState(seed);
+  const eth = state.nations.ETH;
+  if (!eth) return state;
+  eth.stocks.civFactories = 4;
+  eth.stocks.milFactories = 2;
+  eth.stocks.treasury = 0.4;
+  eth.stocks.food = 3;
+  eth.stocks.steel = 0.2;
+  eth.stocks.oil = 0.2;
+  eth.stocks.rares = 0.2;
+  eth.atWarWith = ["INVADER"];
+  eth.policies = { ...MINI_WAR_OVERMOBILIZE };
+  return state;
 }

@@ -34,8 +34,14 @@ export type {
 export { createRng, mulberry32, seedFrom, trackRng } from "./rng";
 export type { CursorRng } from "./rng";
 export { addDaysUtc, tick } from "./tick";
+export { applyFateFactoryBonus, applyPolicies, costPP } from "./policies";
 export {
   DEFAULT_POLICIES,
+  MINI_WAR_OVERMOBILIZE,
+  USA_1936_PEACE_BALANCED,
+  makeMiniWarOvermobilize,
+  makePeaceBalancedState,
   makeTwoNationState,
+  miniWarWorld,
   twoNationWorld,
 } from "./fixtures";
