@@ -1,4 +1,5 @@
 import { contentHash, type SeasonPack } from "@simul/content";
+import { tensionTargetAt } from "./ai";
 import { DEFAULT_POLICIES } from "./fixtures";
 import type {
   CountryId,
@@ -101,15 +102,7 @@ function tensionAtStart(
   schedule: SeasonPack["tensionSchedule"],
   start: string,
 ): number {
-  let at = "";
-  let value = 0;
-  for (const point of schedule) {
-    if (point.at <= start && point.at >= at) {
-      at = point.at;
-      value = point.value;
-    }
-  }
-  return value;
+  return tensionTargetAt(schedule, start) ?? 0;
 }
 
 function copyBase(base: ResourceStocks): ResourceStocks {
@@ -126,12 +119,22 @@ function copyEvents(events: SeasonPack["events"]): EventDefinition[] {
   return JSON.parse(JSON.stringify(events ?? [])) as EventDefinition[];
 }
 
+function copySchedule(
+  schedule: SeasonPack["tensionSchedule"],
+): { at: string; value: number }[] {
+  return schedule.map((point) => ({ at: point.at, value: point.value }));
+}
+
 export function worldFromPack(pack: SeasonPack): WorldView {
   const resourceBase: Record<CountryId, ResourceStocks> = {};
   for (const row of pack.countries) {
     resourceBase[row.id] = copyBase(row.base);
   }
-  return { resourceBase, events: copyEvents(pack.events) };
+  return {
+    resourceBase,
+    events: copyEvents(pack.events),
+    tensionSchedule: copySchedule(pack.tensionSchedule),
+  };
 }
 
 function makeNation(args: {

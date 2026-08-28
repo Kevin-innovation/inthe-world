@@ -169,12 +169,15 @@ const ETH_BASE: ResourceStocks = {
   rares: 1,
 };
 
+const START_TENSION_POINT = { at: "1936-03-01", value: 16 };
+
 export function twoNationWorld(): WorldView {
   return {
     resourceBase: {
       USA: { ...USA_BASE },
       ETH: { ...ETH_BASE },
     },
+    tensionSchedule: [{ ...START_TENSION_POINT }],
   };
 }
 
@@ -276,6 +279,7 @@ export function miniWarWorld(): WorldView {
       USA: { ...USA_BASE },
       ETH: { food: 3, steel: 0.2, oil: 0.2, rares: 0.2 },
     },
+    tensionSchedule: [{ ...START_TENSION_POINT }],
   };
 }
 

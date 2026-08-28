@@ -33,6 +33,7 @@ export type {
 
 export { createRng, mulberry32, seedFrom, trackRng } from "./rng";
 export type { CursorRng } from "./rng";
+export { stepAiPolicies, stepWorldTension } from "./ai";
 export { addDaysUtc, assertFiniteStocks, cloneGameState, tick } from "./tick";
 export {
   FIRED_FLAG_PREFIX,

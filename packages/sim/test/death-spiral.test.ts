@@ -80,6 +80,8 @@ describe("H1 uses start army, not peak", () => {
     const state = makeTwoNationState(5);
     const eth = state.nations.ETH;
     if (!eth) throw new Error("missing ETH");
+    // H1 army threshold assumes the fixture conscription is not rewritten.
+    eth.isPlayer = true;
     eth.stocks.stability = 0;
     eth.stocks.inflation = 80;
     eth.stocks.warSupport = 10;
