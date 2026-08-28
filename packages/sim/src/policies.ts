@@ -1,3 +1,9 @@
+import {
+  GREAT_POWER_TAG,
+  inferSpiritTags,
+  weightTier,
+  type CountryWeight,
+} from "./assign";
 import { cloneGameState } from "./tick";
 import type {
   CountryId,
@@ -5,6 +11,10 @@ import type {
   GameState,
   PolicySliders,
 } from "./types";
+
+export const FATE_BUDGET = 5;
+export const FATE_FACTORY_COST = 2;
+export const FATE_SPIRIT_COST = 3;
 
 const NUMERIC_SLIDERS = [
   "taxRate",
@@ -153,4 +163,94 @@ export function applyFateFactoryBonus(
   nation.flags.fateCiv = usedCiv + appliedCiv;
   nation.flags.fateMil = usedMil + appliedMil;
   return { state: cloned, appliedCiv, appliedMil };
+}
+
+export interface FateSpend {
+  civDelta?: number;
+  milDelta?: number;
+  spiritId?: string;
+  spiritTags?: readonly string[];
+  fateRemaining?: number;
+}
+
+export function applyFateSpends(
+  state: GameState,
+  countryId: CountryId,
+  weights: readonly CountryWeight[],
+  spend: FateSpend = {},
+): {
+  state: GameState;
+  fateRemaining: number;
+  appliedCiv: number;
+  appliedMil: number;
+  error?: string;
+} {
+  const fateRemaining = spend.fateRemaining ?? FATE_BUDGET;
+  const cloned = cloneGameState(state);
+  const empty = {
+    state: cloned,
+    fateRemaining,
+    appliedCiv: 0,
+    appliedMil: 0,
+  };
+  const nation = cloned.nations[countryId];
+  if (!nation) {
+    return { ...empty, error: "unknown_country" };
+  }
+  const row = weights.find((entry) => entry.id === countryId);
+  if (!row) {
+    return { ...empty, error: "unknown_country" };
+  }
+
+  let cost = 0;
+  const spiritId = spend.spiritId?.trim() || undefined;
+  if (spiritId) {
+    const tags = new Set([
+      ...(spend.spiritTags ?? []),
+      ...inferSpiritTags(spiritId, weights),
+    ]);
+    if (tags.has(GREAT_POWER_TAG) && weightTier(row.weight) === "minor") {
+      return { ...empty, error: "great_power_spirit" };
+    }
+    cost += FATE_SPIRIT_COST;
+  }
+
+  const civDelta = spend.civDelta ?? 0;
+  const milDelta = spend.milDelta ?? 0;
+  let appliedCiv = 0;
+  let appliedMil = 0;
+  if (civDelta !== 0 || milDelta !== 0) {
+    const preview = applyFateFactoryBonus(cloned, countryId, civDelta, milDelta);
+    if (preview.error) {
+      return { ...empty, error: preview.error };
+    }
+    appliedCiv = preview.appliedCiv;
+    appliedMil = preview.appliedMil;
+    cost += (appliedCiv + appliedMil) * FATE_FACTORY_COST;
+  }
+
+  if (cost > fateRemaining) {
+    return { ...empty, error: "insufficient_fate" };
+  }
+
+  let next = cloned;
+  if (appliedCiv !== 0 || appliedMil !== 0) {
+    const applied = applyFateFactoryBonus(next, countryId, civDelta, milDelta);
+    next = applied.state;
+    appliedCiv = applied.appliedCiv;
+    appliedMil = applied.appliedMil;
+  }
+  if (spiritId) {
+    const target = next.nations[countryId];
+    if (target && !target.spirits.includes(spiritId)) {
+      target.spirits.push(spiritId);
+    }
+  }
+  next.fateSpent += cost;
+  return {
+    state: next,
+    fateRemaining: fateRemaining - cost,
+    appliedCiv,
+    appliedMil,
+  };
 }

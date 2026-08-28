@@ -4,12 +4,18 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import {
+  confirmAssignment,
+  createAssignment,
   createTwoNationSave,
   ensureGuest,
+  getAssignment,
+  insertGameSave,
   openSqlite,
   runCatchup,
+  withGuestLock,
   type DbHandle,
 } from "../src/index";
+import { makeTwoNationState } from "@simul/sim";
 import { guests, saves } from "../src/schema";
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -181,6 +187,129 @@ describe("runCatchup sqlite", () => {
       handle.db.select().from(saves).where(eq(saves.id, save.id)).get()
         ?.tickIndex,
     ).toBe(0);
+  });
+});
+
+describe("insertGameSave", () => {
+  it("stores the player country from GameState", () => {
+    const handle = openTempDb();
+    const { guestId } = ensureGuest(handle.db, undefined, NOW);
+    const state = makeTwoNationState(4);
+    state.playerCountryId = "ETH";
+    const save = insertGameSave(handle.db, {
+      guestId,
+      state,
+      nowMs: NOW,
+    });
+    expect(save.countryId).toBe("ETH");
+    expect(save.tickIndex).toBe(0);
+    expect(save.status).toBe("active");
+  });
+});
+
+describe("confirmAssignment", () => {
+  it("returns 409 active_run without consuming the draft", () => {
+    const handle = openTempDb();
+    const { guestId } = ensureGuest(handle.db, undefined, NOW);
+    createTwoNationSave(handle.db, { guestId, seed: 1, nowMs: NOW });
+    const assignmentId = "confirm-active-run";
+    createAssignment({
+      id: assignmentId,
+      guestId,
+      seasonId: "the_coming_storm",
+      countryId: "ETH",
+      seed: 8,
+      createdAt: NOW,
+    });
+    const result = confirmAssignment(handle.db, {
+      guestId,
+      assignmentId,
+      state: makeTwoNationState(8),
+      nowMs: NOW,
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("expected 409");
+    expect(result.httpStatus).toBe(409);
+    expect(result.error).toBe("active_run");
+    expect(getAssignment(assignmentId)?.consumed).toBe(false);
+  });
+
+  it("inserts the save then consumes; a failed insert leaves the draft", () => {
+    const handle = openTempDb();
+    const { guestId } = ensureGuest(handle.db, undefined, NOW);
+    const assignmentId = "confirm-insert-first";
+    createAssignment({
+      id: assignmentId,
+      guestId,
+      seasonId: "the_coming_storm",
+      countryId: "ETH",
+      seed: 4,
+      createdAt: NOW,
+    });
+
+    const broken = makeTwoNationState(4);
+    const usa = broken.nations.USA;
+    if (!usa) throw new Error("missing USA");
+    usa.stocks.politicalPower = Number.NaN;
+    expect(() =>
+      confirmAssignment(handle.db, {
+        guestId,
+        assignmentId,
+        state: broken,
+        nowMs: NOW,
+      }),
+    ).toThrow(/error_tick_nan/);
+    expect(getAssignment(assignmentId)?.consumed).toBe(false);
+    expect(
+      handle.db.select().from(saves).where(eq(saves.guestId, guestId)).all(),
+    ).toHaveLength(0);
+
+    const ok = confirmAssignment(handle.db, {
+      guestId,
+      assignmentId,
+      state: makeTwoNationState(4),
+      nowMs: NOW,
+    });
+    expect(ok.ok).toBe(true);
+    if (!ok.ok) throw new Error("expected insert");
+    expect(ok.save.status).toBe("active");
+    expect(getAssignment(assignmentId)?.consumed).toBe(true);
+  });
+
+  it("serializes concurrent confirms so only one active save is inserted", async () => {
+    const handle = openTempDb();
+    const { guestId } = ensureGuest(handle.db, undefined, NOW);
+    const assignmentId = "confirm-lock";
+    createAssignment({
+      id: assignmentId,
+      guestId,
+      seasonId: "the_coming_storm",
+      countryId: "ETH",
+      seed: 5,
+      createdAt: NOW,
+    });
+    const [first, second] = await Promise.all([
+      withGuestLock(guestId, () =>
+        confirmAssignment(handle.db, {
+          guestId,
+          assignmentId,
+          state: makeTwoNationState(5),
+          nowMs: NOW,
+        }),
+      ),
+      withGuestLock(guestId, () =>
+        confirmAssignment(handle.db, {
+          guestId,
+          assignmentId,
+          state: makeTwoNationState(6),
+          nowMs: NOW,
+        }),
+      ),
+    ]);
+    expect([first, second].filter((row) => row.ok)).toHaveLength(1);
+    expect(
+      handle.db.select().from(saves).where(eq(saves.guestId, guestId)).all(),
+    ).toHaveLength(1);
   });
 });
 

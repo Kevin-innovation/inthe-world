@@ -66,6 +66,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@simul/content':
+        specifier: workspace:*
+        version: link:../content
       '@simul/sim':
         specifier: workspace:*
         version: link:../sim

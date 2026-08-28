@@ -130,6 +130,14 @@ function copyEvents(events: SeasonPack["events"]): EventDefinition[] {
   return JSON.parse(JSON.stringify(events ?? [])) as EventDefinition[];
 }
 
+export function worldFromPack(pack: SeasonPack): WorldView {
+  const resourceBase: Record<CountryId, ResourceStocks> = {};
+  for (const row of pack.countries) {
+    resourceBase[row.id] = copyBase(row.base);
+  }
+  return { resourceBase, events: copyEvents(pack.events) };
+}
+
 function makeNation(args: {
   id: CountryId;
   isPlayer: boolean;
@@ -176,7 +184,6 @@ export function loadSeason(
   }
 
   const nations: Record<CountryId, NationState> = {};
-  const resourceBase: Record<CountryId, ResourceStocks> = {};
   for (const row of pack.countries) {
     const stocks = row.stocks;
     nations[row.id] = makeNation({
@@ -208,7 +215,6 @@ export function loadSeason(
         consumerGoods: stocks.consumerGoods,
       },
     });
-    resourceBase[row.id] = copyBase(row.base);
   }
 
   const regions: Record<string, RegionState> = {};
@@ -243,5 +249,5 @@ export function loadSeason(
     ranked: false,
   };
 
-  return { state, world: { resourceBase, events: copyEvents(pack.events) } };
+  return { state, world: worldFromPack(pack) };
 }

@@ -117,6 +117,74 @@ button:disabled {
   filter: brightness(1.08);
 }
 
+.assign-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.assign-country {
+  margin: 0.4rem 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 5vw, 2.6rem);
+  letter-spacing: 0.06em;
+}
+
+.assign-lore {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.assign-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem 0.8rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.assign-fate {
+  margin: 0;
+  color: var(--brass);
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.assign-spends {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.assign-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.assign-spirit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  color: var(--muted);
+}
+
+.assign-spirit select {
+  background: var(--panel-2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  padding: 0.35rem 0.5rem;
+}
+
+.assign-confirm {
+  border: 0;
+  width: fit-content;
+}
+
 .hq {
   min-height: 100dvh;
   display: grid;
