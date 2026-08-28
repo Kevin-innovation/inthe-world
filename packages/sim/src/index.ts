@@ -34,9 +34,29 @@ export type {
 export { createRng, mulberry32, seedFrom, trackRng } from "./rng";
 export type { CursorRng } from "./rng";
 export { addDaysUtc, assertFiniteStocks, cloneGameState, tick } from "./tick";
-export { applyFateFactoryBonus, applyPolicies, costPP } from "./policies";
-export { loadSeason } from "./loadSeason";
+export {
+  FATE_BUDGET,
+  FATE_FACTORY_COST,
+  FATE_SPIRIT_COST,
+  applyFateFactoryBonus,
+  applyFateSpends,
+  applyPolicies,
+  costPP,
+} from "./policies";
+export type { FateSpend } from "./policies";
+export { loadSeason, worldFromPack } from "./loadSeason";
 export type { LoadSeasonOpts, SeasonPack } from "./loadSeason";
+export {
+  GREAT_POWER_TAG,
+  WEIGHT_GREAT,
+  WEIGHT_MINOR,
+  WEIGHT_REGIONAL,
+  assignCountry,
+  countryWeights,
+  inferSpiritTags,
+  weightTier,
+} from "./assign";
+export type { CountryWeight, WeightTier } from "./assign";
 export {
   DEFAULT_POLICIES,
   MINI_WAR_OVERMOBILIZE,

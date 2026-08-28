@@ -47,6 +47,8 @@ function runStatsFrom(stocks: NationStocks): RunStats {
     troughStability: stocks.stability,
     peakGdp: stocks.gdp,
     troughGdp: stocks.gdp,
+    peakArmy: stocks.armySize,
+    startArmy: stocks.armySize,
     peakComposite: 0,
     troughComposite: 0,
     peakRegions: 0,
@@ -123,6 +125,14 @@ function copyBase(base: ResourceStocks): ResourceStocks {
   };
 }
 
+export function worldFromPack(pack: SeasonPack): WorldView {
+  const resourceBase: Record<CountryId, ResourceStocks> = {};
+  for (const row of pack.countries) {
+    resourceBase[row.id] = copyBase(row.base);
+  }
+  return { resourceBase };
+}
+
 function makeNation(args: {
   id: CountryId;
   isPlayer: boolean;
@@ -147,6 +157,9 @@ function makeNation(args: {
     stocks,
     derived: derivedFrom(stocks, args.faction),
     policies: { ...DEFAULT_POLICIES },
+    civBuildPts: 0,
+    milBuildPts: 0,
+    infraBuildPts: 0,
     spirits: [],
     focus: null,
     faction: args.faction,
@@ -166,7 +179,6 @@ export function loadSeason(
   }
 
   const nations: Record<CountryId, NationState> = {};
-  const resourceBase: Record<CountryId, ResourceStocks> = {};
   for (const row of pack.countries) {
     const stocks = row.stocks;
     nations[row.id] = makeNation({
@@ -198,7 +210,6 @@ export function loadSeason(
         consumerGoods: stocks.consumerGoods,
       },
     });
-    resourceBase[row.id] = copyBase(row.base);
   }
 
   const regions: Record<string, RegionState> = {};
@@ -233,5 +244,5 @@ export function loadSeason(
     ranked: false,
   };
 
-  return { state, world: { resourceBase } };
+  return { state, world: worldFromPack(pack) };
 }

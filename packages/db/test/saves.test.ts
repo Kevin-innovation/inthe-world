@@ -6,10 +6,12 @@ import { eq } from "drizzle-orm";
 import {
   createTwoNationSave,
   ensureGuest,
+  insertGameSave,
   openSqlite,
   runCatchup,
   type DbHandle,
 } from "../src/index";
+import { makeTwoNationState } from "@simul/sim";
 import { guests, saves } from "../src/schema";
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -181,6 +183,23 @@ describe("runCatchup sqlite", () => {
       handle.db.select().from(saves).where(eq(saves.id, save.id)).get()
         ?.tickIndex,
     ).toBe(0);
+  });
+});
+
+describe("insertGameSave", () => {
+  it("stores the player country from GameState", () => {
+    const handle = openTempDb();
+    const { guestId } = ensureGuest(handle.db, undefined, NOW);
+    const state = makeTwoNationState(4);
+    state.playerCountryId = "ETH";
+    const save = insertGameSave(handle.db, {
+      guestId,
+      state,
+      nowMs: NOW,
+    });
+    expect(save.countryId).toBe("ETH");
+    expect(save.tickIndex).toBe(0);
+    expect(save.status).toBe("active");
   });
 });
 

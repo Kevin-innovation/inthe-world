@@ -10,7 +10,7 @@ export default function LandingPage() {
         <p className="landing-season">{t("landing.seasonName")}</p>
         <p className="landing-season-id">{t("landing.seasonId")}</p>
         <p className="landing-ethics">{t("landing.ethics")}</p>
-        <Link className="landing-play" href="/dev/harness">
+        <Link className="landing-play" href="/assign">
           {t("landing.play")}
         </Link>
       </div>

@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { loadComingStormPack } from "@simul/content/load";
 import {
   assertFiniteStocks,
   createRng,
   makeTwoNationState,
   tick,
-  twoNationWorld,
+  worldFromPack,
   type GameState,
 } from "@simul/sim";
 import { planCatchupWeeks } from "./catchup";
@@ -108,6 +109,53 @@ export function createTwoNationSave(
   return row;
 }
 
+export function insertGameSave(
+  db: SimulDb,
+  input: {
+    guestId: string;
+    state: GameState;
+    nowMs?: number;
+    lastTickAtMs?: number;
+  },
+): SaveRecord {
+  const nowMs = input.nowMs ?? Date.now();
+  const lastTickAtMs = input.lastTickAtMs ?? nowMs;
+  const id = randomUUID();
+  const state = input.state;
+  state.saveId = id;
+  state.lastTickAt = new Date(lastTickAtMs).toISOString();
+  assertFiniteStocks(state);
+  db.insert(saves)
+    .values({
+      id,
+      guestId: input.guestId,
+      seasonId: state.seasonId,
+      countryId: state.playerCountryId,
+      seed: state.seed,
+      tickIndex: state.tickIndex,
+      lastTickAt: lastTickAtMs,
+      status: state.status,
+      stateJson: JSON.stringify(state),
+      ranked: state.ranked,
+      createdAt: nowMs,
+    })
+    .run();
+  const row = db.select().from(saves).where(eq(saves.id, id)).get();
+  if (!row) throw new Error("save insert failed");
+  return row;
+}
+
+export function findActiveSave(
+  db: SimulDb,
+  guestId: string,
+): SaveRecord | undefined {
+  return db
+    .select()
+    .from(saves)
+    .where(and(eq(saves.guestId, guestId), eq(saves.status, "active")))
+    .get();
+}
+
 function parseState(json: string): GameState {
   const state = JSON.parse(json) as GameState;
   assertFiniteStocks(state);
@@ -118,7 +166,7 @@ function applyCatchupTicks(state: GameState, weeks: number): {
   state: GameState;
   interrupted: boolean;
 } {
-  const world = twoNationWorld();
+  const world = worldFromPack(loadComingStormPack());
   let current = state;
   let interrupted = false;
   for (let i = 0; i < weeks; i++) {

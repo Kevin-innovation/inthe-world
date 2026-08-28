@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { loadComingStormPack } from "@simul/content/load";
 import {
   applyFateFactoryBonus,
+  applyFateSpends,
   applyPolicies,
   costPP,
+  countryWeights,
   makeTwoNationState,
 } from "../src/index";
 
@@ -117,3 +120,43 @@ describe("fate factory cap", () => {
     expect(frac.state.nations.ETH?.stocks.civFactories).toBe(2);
   });
 });
+
+describe("fate spends", () => {
+  const weights = countryWeights(loadComingStormPack().countries);
+
+  it("caps ETH at +2 civ and still stays far below USA", () => {
+    const start = makeTwoNationState(2);
+    const plus2 = applyFateSpends(start, "ETH", weights, { civDelta: 2 });
+    expect(plus2.error).toBeUndefined();
+    expect(plus2.appliedCiv).toBe(2);
+    expect(plus2.fateRemaining).toBe(1);
+    expect(plus2.state.nations.ETH?.stocks.civFactories).toBe(4);
+    expect(plus2.state.nations.ETH?.stocks.civFactories).toBeLessThan(
+      (plus2.state.nations.USA?.stocks.civFactories ?? 0) / 10,
+    );
+
+    const over = applyFateSpends(plus2.state, "ETH", weights, {
+      civDelta: 1,
+      fateRemaining: plus2.fateRemaining,
+    });
+    expect(over.error).toBe("fate_cap");
+    expect(over.state.nations.ETH?.stocks.civFactories).toBe(4);
+  });
+
+  it("cannot spend fate to give ETH a USA spirit", () => {
+    const start = makeTwoNationState(1);
+    const before = JSON.stringify(start.nations.ETH?.spirits);
+    const blocked = applyFateSpends(start, "ETH", weights, { spiritId: "USA" });
+    expect(blocked.error).toBe("great_power_spirit");
+    expect(blocked.state.nations.ETH?.spirits).toEqual([]);
+    expect(JSON.stringify(start.nations.ETH?.spirits)).toBe(before);
+
+    const tagged = applyFateSpends(start, "ETH", weights, {
+      spiritId: "arsenal_of_democracy",
+      spiritTags: ["great_power"],
+    });
+    expect(tagged.error).toBe("great_power_spirit");
+    expect(tagged.state.nations.ETH?.spirits).toEqual([]);
+  });
+});
+

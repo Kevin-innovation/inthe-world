@@ -19,6 +19,15 @@ export type { DbHandle, SimulDb } from "./sqlite";
 export {
   createTwoNationSave,
   ensureGuest,
+  findActiveSave,
+  insertGameSave,
   runCatchup,
 } from "./saves";
 export type { CatchupResult, SaveRecord } from "./saves";
+export {
+  consumeAssignment,
+  createAssignment,
+  findOpenAssignment,
+  getAssignment,
+} from "./assignments";
+export type { AssignmentDraft } from "./assignments";
