@@ -50,43 +50,65 @@ function assignmentPayload(input: {
   };
 }
 
-export async function POST() {
-  const convex = getConvex();
-  const { guestId } = await convex.mutation(api.guests.ensure, {
-    cookieId: await readGuestCookie(),
-  });
-  const pack = loadComingStormPack();
-  const assignmentId = randomUUID();
-  const seed = seedFrom(assignmentId, pack.id);
-  const countryId = assignCountry(
-    countryWeights(pack.countries),
-    createRng(seed, 0),
-  );
-  const started = await convex.mutation(api.assignments.start, {
-    guestId,
-    seasonId: pack.id,
-    id: assignmentId,
-    countryId,
-    seed,
-    lore: loreFor(countryId),
-  });
+function convexErrorResponse(err: unknown): NextResponse {
+  const message = err instanceof Error ? err.message : "";
+  if (
+    message.includes("CONVEX_URL") ||
+    message.includes("NEXT_PUBLIC_CONVEX") ||
+    message.includes("Could not find public function") ||
+    /convex/i.test(message)
+  ) {
+    return NextResponse.json({ error: "missing_convex" }, { status: 503 });
+  }
+  return NextResponse.json({ error: "assign_failed" }, { status: 502 });
+}
 
-  if (started.type === "active_run") {
+export async function POST() {
+  try {
+    const pack = loadComingStormPack();
+    const assignmentId = randomUUID();
+    const seed = seedFrom(assignmentId, pack.id);
+    const countryId = assignCountry(
+      countryWeights(pack.countries),
+      createRng(seed, 0),
+    );
+
+    const convex = getConvex();
+    const { guestId } = await convex.mutation(api.guests.ensure, {
+      cookieId: await readGuestCookie(),
+    });
+    const started = await convex.mutation(api.assignments.start, {
+      guestId,
+      seasonId: pack.id,
+      id: assignmentId,
+      countryId,
+      seed,
+      lore: loreFor(countryId),
+    });
+
+    if (started.type === "active_run") {
+      const res = NextResponse.json(
+        {
+          error: "active_run",
+          saveId: started.saveId,
+          countryId: started.countryId,
+        },
+        { status: 409 },
+      );
+      setGuestCookie(res, guestId);
+      return res;
+    }
+
     const res = NextResponse.json(
-      { error: "active_run", saveId: started.saveId, countryId: started.countryId },
-      { status: 409 },
+      assignmentPayload({
+        assignmentId: started.assignment.id,
+        countryId: started.assignment.countryId,
+        seed: started.assignment.seed,
+      }),
     );
     setGuestCookie(res, guestId);
     return res;
+  } catch (err) {
+    return convexErrorResponse(err);
   }
-
-  const res = NextResponse.json(
-    assignmentPayload({
-      assignmentId: started.assignment.id,
-      countryId: started.assignment.countryId,
-      seed: started.assignment.seed,
-    }),
-  );
-  setGuestCookie(res, guestId);
-  return res;
 }

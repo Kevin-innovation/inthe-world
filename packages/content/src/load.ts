@@ -8,6 +8,12 @@ import {
   type SeasonPack,
 } from "./schema";
 import { parseYaml, seasonPackFromYaml } from "./fromYaml";
+import {
+  countriesYaml,
+  eventsYamls,
+  regionsYaml,
+  seasonYaml,
+} from "./packYaml";
 
 export { parseYaml, seasonPackFromYaml } from "./fromYaml";
 
@@ -57,15 +63,12 @@ export function contentRoot(): string {
 }
 
 export function loadComingStormPack(): SeasonPack {
-  const root = contentRoot();
-  const seasonPath = join(root, "seasons", "the_coming_storm.yaml");
-  const seasonYaml = readFileSync(seasonPath, "utf8");
-  const season = seasonDefinitionSchema.parse(parseYaml(seasonYaml));
-  return loadSeasonPackFromFiles({
-    seasonPath,
-    countriesPath: join(root, ...season.countrySetup.split("/")),
-    regionsPath: join(root, ...season.regionSetup.split("/")),
-    contentRoot: root,
+  // Embedded strings so Vercel/serverless does not need YAML on disk.
+  return seasonPackFromYaml({
+    seasonYaml,
+    countriesYaml,
+    regionsYaml,
+    eventsYamls,
   });
 }
 

@@ -4,7 +4,7 @@ import {
   eventsYamls,
   regionsYaml,
   seasonYaml,
-} from "../../../convex/packYaml";
+} from "../src/packYaml";
 import { seasonPackFromYaml } from "../src/fromYaml";
 import { loadComingStormPack } from "../src/load";
 

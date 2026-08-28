@@ -68,7 +68,11 @@ export function AssignCinematic() {
           return;
         }
         if (!res.ok || !body.countryId || !body.assignmentId) {
-          setError(t("assign.failed"));
+          setError(
+            body.error === "missing_convex"
+              ? t("assign.missingConvex")
+              : t("assign.failed"),
+          );
           return;
         }
         setPayload(body);

@@ -26,6 +26,7 @@
     "toHarness": "HQ로 이동",
     "activeRun": "이미 진행 중인 런이 있습니다.",
     "failed": "배정에 실패했습니다.",
+    "missingConvex": "배정 서버(Convex)에 연결하지 못했습니다. Vercel에 CONVEX_URL과 NEXT_PUBLIC_CONVEX_URL을 넣고, npx convex deploy를 한 뒤 다시 시도하세요.",
     "confirmFailed": "확정에 실패했습니다.",
     "greatPowerSpirit": "약소국은 강대국 정신을 받을 수 없습니다."
   },
