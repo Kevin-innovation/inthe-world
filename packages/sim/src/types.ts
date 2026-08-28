@@ -86,10 +86,11 @@ export interface RunStats {
   troughGdp: number;
   peakArmy: number;
   startArmy: number;
-  peakComposite: number;
-  troughComposite: number;
-  peakRegions: number;
-  troughRegions: number;
+  // undefined = not yet observed; 0 is a real trough (wiped map / zero composite).
+  peakComposite?: number;
+  troughComposite?: number;
+  peakRegions?: number;
+  troughRegions?: number;
   startRegions: number;
   weeksIndependent: number;
   weeksAtWar: number;

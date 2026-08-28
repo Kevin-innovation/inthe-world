@@ -1,0 +1,20 @@
+# Historical mid-path composite at 1948-12 (or death).
+# Units match compositeOf in packages/sim: USA AFK ~131, occupied/poor ETH ~2.
+USA:
+  baselineComposite: 130.8
+GER:
+  baselineComposite: 18
+JAP:
+  baselineComposite: 15
+ENG:
+  baselineComposite: 42
+FRA:
+  baselineComposite: 30
+SOV:
+  baselineComposite: 70
+ITA:
+  baselineComposite: 16
+ETH:
+  baselineComposite: 2.0
+POL:
+  baselineComposite: 8

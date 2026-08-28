@@ -5,7 +5,7 @@ import {
   regionsFileSchema,
   tensionPointSchema,
 } from "../src/schema";
-import { loadComingStormPack } from "../src/load";
+import { loadComingStormBaselines, loadComingStormPack } from "../src/load";
 
 describe("country schema", () => {
   it("rejects missing id", () => {
@@ -84,6 +84,17 @@ describe("tension schema", () => {
         value: Number.POSITIVE_INFINITY,
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("the_coming_storm baselines", () => {
+  it("ranks USA above ETH and occupied GER/JAP below USA", () => {
+    const baselines = loadComingStormBaselines();
+    expect(baselines.USA).toBeGreaterThan(100);
+    expect(baselines.ETH).toBeLessThan(5);
+    expect(baselines.USA ?? 0).toBeGreaterThan((baselines.ETH ?? 0) * 10);
+    expect(baselines.GER ?? 0).toBeLessThan(baselines.USA ?? 0);
+    expect(baselines.JAP ?? 0).toBeLessThan(baselines.USA ?? 0);
   });
 });
 

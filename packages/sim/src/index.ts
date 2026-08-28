@@ -79,6 +79,17 @@ export {
 } from "./assign";
 export type { CountryWeight, WeightTier } from "./assign";
 export {
+  ENDING_ARCHETYPES,
+  GREAT_POWERS,
+  compositeOf,
+  endingMultiplier,
+  intactFactorOf,
+  ownedRegionCount,
+  resolveEnding,
+} from "./endings";
+export { SEASON_WEEKS_THE_COMING_STORM, scoreRun } from "./score";
+export type { ScoreBreakdown, ScoreRunOpts } from "./score";
+export {
   DEFAULT_POLICIES,
   MINI_WAR_OVERMOBILIZE,
   USA_1936_PEACE_BALANCED,

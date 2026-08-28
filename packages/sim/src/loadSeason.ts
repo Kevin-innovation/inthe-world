@@ -50,10 +50,6 @@ function runStatsFrom(stocks: NationStocks): RunStats {
     troughGdp: stocks.gdp,
     peakArmy: stocks.armySize,
     startArmy: stocks.armySize,
-    peakComposite: 0,
-    troughComposite: 0,
-    peakRegions: 0,
-    troughRegions: 0,
     startRegions: 0,
     weeksIndependent: 0,
     weeksAtWar: 0,
@@ -227,6 +223,17 @@ export function loadSeason(
       coastal: row.coastal,
       factoryDamage: 0,
     };
+  }
+
+  // Snapshot 1936 counts; rump/phoenix compare against start, not the ending map.
+  for (const nation of Object.values(nations)) {
+    let owned = 0;
+    for (const region of Object.values(regions)) {
+      if (region.owner === nation.id) owned += 1;
+    }
+    nation.runStats.startRegions = owned;
+    nation.runStats.peakRegions = owned;
+    nation.runStats.troughRegions = owned;
   }
 
   const state: GameState = {

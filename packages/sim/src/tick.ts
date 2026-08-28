@@ -1,5 +1,6 @@
 import { assertFiniteStocks, cloneGameState } from "./clone";
 import { runCampaignPulses, writePaperStrength } from "./combat";
+import { compositeOf, ownedRegionCount, resolveEnding } from "./endings";
 import { runEventPhase } from "./events";
 import { trackRng } from "./rng";
 import type {
@@ -17,6 +18,8 @@ import type {
 } from "./types";
 
 export { assertFiniteStocks, cloneGameState };
+
+const COMING_STORM_END: GameDate = { year: 1948, month: 12, day: 31 };
 
 const RESOURCE_KEYS = ["food", "steel", "oil", "rares"] as const;
 const RESOURCE_PRICE: Record<(typeof RESOURCE_KEYS)[number], number> = {
@@ -59,6 +62,12 @@ export function addDaysUtc(date: GameDate, days: number): GameDate {
     month: d.getUTCMonth() + 1,
     day: d.getUTCDate(),
   };
+}
+
+function dateGte(a: GameDate, b: GameDate): boolean {
+  if (a.year !== b.year) return a.year > b.year;
+  if (a.month !== b.month) return a.month > b.month;
+  return a.day >= b.day;
 }
 
 function oilDoctrineMul(doctrine: Doctrine): number {
@@ -169,9 +178,17 @@ function stepTrade(
   return exportValue - importCost;
 }
 
-function collapseNation(state: GameState, nation: NationState): void {
+function collapseNation(
+  state: GameState,
+  nation: NationState,
+  reason: "h1" | "h3" | "h4",
+): void {
   nation.alive = false;
   nation.runStats.collapseWeek = state.tickIndex;
+  nation.flags.failedState = 1;
+  if (reason === "h1") nation.flags.h1Fired = 1;
+  if (reason === "h3") nation.flags.h3Fired = 1;
+  if (reason === "h4") nation.flags.h4Fired = 1;
   if (nation.isPlayer) {
     state.status = "ended";
   }
@@ -183,7 +200,37 @@ function addSpirit(nation: NationState, id: string): void {
   }
 }
 
-function updateRunStats(nation: NationState): void {
+function updateRegionExtrema(nation: NationState, state: GameState): void {
+  const rs = nation.runStats;
+  const owned = ownedRegionCount(state, nation.id);
+  const start = rs.startRegions;
+  // Empty two-nation maps have no territory; 0/0 is not a phoenix trough.
+  if (start <= 0 && owned <= 0) return;
+  rs.peakRegions = Math.max(rs.peakRegions ?? owned, owned);
+  if (start > 0) {
+    // 0 is a real wipe trough; only undefined means "not yet seen".
+    rs.troughRegions =
+      rs.troughRegions === undefined
+        ? Math.min(start, owned)
+        : Math.min(rs.troughRegions, owned);
+  }
+}
+
+function updateCompositeExtrema(nation: NationState, state: GameState): void {
+  // Dead composite is 0 via independenceFactor; do not clobber the living trough.
+  if (!nation.alive) return;
+  const c = compositeOf(nation, state);
+  const rs = nation.runStats;
+  if (rs.peakComposite === undefined) {
+    rs.peakComposite = c;
+    rs.troughComposite = c;
+    return;
+  }
+  rs.peakComposite = Math.max(rs.peakComposite, c);
+  rs.troughComposite = Math.min(rs.troughComposite ?? c, c);
+}
+
+function updateRunStats(nation: NationState, state: GameState): void {
   const rs = nation.runStats;
   const st = nation.stocks;
   rs.peakStability = Math.max(rs.peakStability, st.stability);
@@ -194,6 +241,8 @@ function updateRunStats(nation: NationState): void {
   rs.weeksAlive += 1;
   if (nation.independent) rs.weeksIndependent += 1;
   if (nation.atWarWith.length > 0) rs.weeksAtWar += 1;
+  updateRegionExtrema(nation, state);
+  updateCompositeExtrema(nation, state);
 }
 
 function stepHardFails(
@@ -226,7 +275,7 @@ function stepHardFails(
   }
 
   if (flagNumber(flags, "h4Weeks") >= 8) {
-    collapseNation(state, nation);
+    collapseNation(state, nation, "h4");
     return;
   }
 
@@ -247,7 +296,7 @@ function stepHardFails(
       flags.h3CollapseWeeks = 0;
     }
     if (flagNumber(flags, "h3CollapseWeeks") >= 4) {
-      collapseNation(state, nation);
+      collapseNation(state, nation, "h3");
       return;
     }
   }
@@ -258,7 +307,7 @@ function stepHardFails(
         ? nation.runStats.startArmy
         : stocks.armySize;
     if (stocks.warSupport < 30 && stocks.armySize < 0.4 * startArmy) {
-      collapseNation(state, nation);
+      collapseNation(state, nation, "h1");
       return;
     }
     nation.runStats.hadRevolution = true;
@@ -522,7 +571,7 @@ function stepNation(
   stocks.warSupport = clamp(stocks.warSupport + wsDelta, 0, 100);
 
   // 15. Hard fails + runStats
-  updateRunStats(nation);
+  updateRunStats(nation, state);
   stepHardFails(nation, state, extract.food);
 }
 
@@ -572,8 +621,25 @@ export function tick(
   const eventResult = runEventPhase(next, world);
   newspapers.push(...eventResult.newspapers);
 
+  // Combat can flip owners after stepNation; region troughs must see this week's map.
+  for (const id of ids) {
+    const nation = next.nations[id];
+    if (!nation) continue;
+    updateRegionExtrema(nation, next);
+    updateCompositeExtrema(nation, next);
+  }
+
   next.rngCursor = tracked.cursor();
   assertFiniteStocks(next);
+
+  // Season calendar and hard-fail both freeze here so catch-up cannot overshoot.
+  if (dateGte(next.date, COMING_STORM_END)) {
+    next.status = "ended";
+  }
+  if (next.status === "ended" && next.ending === undefined) {
+    next.ending = resolveEnding(next, next.playerCountryId);
+  }
+
   return {
     state: next,
     newspapers,

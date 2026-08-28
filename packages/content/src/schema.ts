@@ -189,6 +189,16 @@ export const seasonPackSchema = seasonDefinitionSchema.extend({
   events: eventsFileSchema.default([]),
 });
 
+export const countryBaselineSchema = z.object({
+  baselineComposite: z.number().finite().nonnegative(),
+});
+
+export const baselinesFileSchema = z
+  .record(z.string().min(1), countryBaselineSchema)
+  .refine((rows) => rows.USA !== undefined && rows.ETH !== undefined, {
+    message: "USA and ETH baselines required",
+  });
+
 export type CountryDefinition = z.output<typeof countrySchema>;
 export type RegionDefinition = z.output<typeof regionSchema>;
 export type TensionPoint = z.output<typeof tensionPointSchema>;
@@ -196,3 +206,5 @@ export type SeasonDefinitionContent = z.output<typeof seasonDefinitionSchema>;
 export type EventDefinitionContent = z.output<typeof eventDefinitionSchema>;
 export type EventChoiceContent = z.output<typeof eventChoiceSchema>;
 export type SeasonPack = z.output<typeof seasonPackSchema>;
+export type CountryBaseline = z.output<typeof countryBaselineSchema>;
+export type BaselinesFile = z.output<typeof baselinesFileSchema>;

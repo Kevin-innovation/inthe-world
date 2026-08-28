@@ -3,11 +3,13 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
 import {
+  baselinesFileSchema,
   countriesFileSchema,
   eventsFileSchema,
   regionsFileSchema,
   seasonDefinitionSchema,
   seasonPackSchema,
+  type BaselinesFile,
   type SeasonPack,
 } from "./schema";
 
@@ -89,4 +91,17 @@ export function loadComingStormPack(): SeasonPack {
     regionsPath: join(root, ...season.regionSetup.split("/")),
     contentRoot: root,
   });
+}
+
+export function loadComingStormBaselines(): Record<string, number> {
+  const root = contentRoot();
+  const raw = parseYaml(
+    readFileSync(join(root, "baselines", "the_coming_storm.yaml"), "utf8"),
+  );
+  const parsed: BaselinesFile = baselinesFileSchema.parse(raw);
+  const out: Record<string, number> = {};
+  for (const [id, row] of Object.entries(parsed)) {
+    out[id] = row.baselineComposite;
+  }
+  return out;
 }

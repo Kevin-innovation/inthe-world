@@ -1,6 +1,8 @@
 export { canonicalJson, contentHash } from "./hash";
 export {
+  baselinesFileSchema,
   countriesFileSchema,
+  countryBaselineSchema,
   countrySchema,
   countryStocksSchema,
   effectSchema,
@@ -20,6 +22,8 @@ export {
   terrainSchema,
 } from "./schema";
 export type {
+  BaselinesFile,
+  CountryBaseline,
   CountryDefinition,
   EventChoiceContent,
   EventDefinitionContent,
