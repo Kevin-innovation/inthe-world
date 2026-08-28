@@ -9,7 +9,7 @@ const GUEST_COOKIE_ATTRS = {
   sameSite: "lax" as const,
   path: "/",
   secure: process.env.NODE_ENV === "production",
-  maxAge: 60 * 60 * 24 * 365,
+  maxAge: 60 * 60 * 24 * 180,
 };
 
 export async function readGuestCookie(): Promise<string | undefined> {

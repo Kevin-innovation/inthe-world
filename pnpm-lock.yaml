@@ -16,6 +16,9 @@ importers:
       '@simul/sim':
         specifier: workspace:*
         version: link:../../packages/sim
+      better-sqlite3:
+        specifier: 12.2.0
+        version: 12.2.0
       next:
         specifier: 15.5.7
         version: 15.5.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0)

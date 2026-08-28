@@ -4,7 +4,6 @@ import { fileURLToPath } from "node:url";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
-import { INIT_SQL } from "./migrations";
 import * as schema from "./schema";
 
 export type SimulDb = ReturnType<typeof drizzle<typeof schema>>;
@@ -39,7 +38,7 @@ export function defaultSqlitePath(): string {
   return path.join(root, "data", "simul.sqlite");
 }
 
-function resolveMigrationsFolder(): string | undefined {
+function resolveMigrationsFolder(): string {
   const here = path.dirname(fileURLToPath(import.meta.url));
   const root = findWorkspaceRoot();
   const candidates = [
@@ -52,7 +51,7 @@ function resolveMigrationsFolder(): string | undefined {
   for (const dir of candidates) {
     if (fs.existsSync(path.join(dir, "meta/_journal.json"))) return dir;
   }
-  return undefined;
+  throw new Error(`drizzle migrations not found (cwd=${process.cwd()})`);
 }
 
 export function openSqlite(filePath: string): DbHandle {
@@ -63,13 +62,7 @@ export function openSqlite(filePath: string): DbHandle {
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("foreign_keys = ON");
   const db = drizzle(sqlite, { schema });
-  const migrationsFolder = resolveMigrationsFolder();
-  if (migrationsFolder) {
-    migrate(db, { migrationsFolder });
-  } else {
-    // Next file tracing can omit packages/db/drizzle; schema is still applied.
-    sqlite.exec(INIT_SQL);
-  }
+  migrate(db, { migrationsFolder: resolveMigrationsFolder() });
   return { db, sqlite };
 }
 

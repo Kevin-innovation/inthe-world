@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   MAX_CATCHUP_WEEKS,
+  MAX_HARNESS_WEEKS,
   catchupWeeks,
   planCatchupWeeks,
 } from "../src/catchup";
@@ -72,5 +73,36 @@ describe("planCatchupWeeks", () => {
       body: { ranked: false, weeks: 10 },
     });
     expect(planned).toEqual({ ok: true, weeks: 10 });
+  });
+
+  it("caps unranked elapsed catch-up at 216 without a harness body", () => {
+    const planned = planCatchupWeeks({
+      elapsedMs: 10 * 24 * HOUR_MS,
+      ranked: false,
+      body: {},
+    });
+    expect(planned).toEqual({ ok: true, weeks: 216 });
+  });
+
+  it("rejects non-integer or oversize harness weeks", () => {
+    const base = {
+      elapsedMs: 40 * MINUTE_MS,
+      ranked: false as const,
+    };
+    expect(
+      planCatchupWeeks({ ...base, body: { ranked: false, weeks: 1e9 } }),
+    ).toEqual({ ok: false, status: 400, error: "invalid_weeks" });
+    expect(
+      planCatchupWeeks({ ...base, body: { ranked: false, weeks: 672 } }),
+    ).toEqual({ ok: false, status: 400, error: "invalid_weeks" });
+    expect(
+      planCatchupWeeks({ ...base, body: { ranked: false, weeks: 1.5 } }),
+    ).toEqual({ ok: false, status: 400, error: "invalid_weeks" });
+    expect(
+      planCatchupWeeks({
+        ...base,
+        body: { ranked: false, weeks: MAX_HARNESS_WEEKS },
+      }),
+    ).toEqual({ ok: true, weeks: MAX_HARNESS_WEEKS });
   });
 });

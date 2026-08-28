@@ -4,6 +4,8 @@ export const WEEK_MS = 20 * 60 * 1000;
 export const MAX_CATCHUP_REAL_HOURS = 72;
 export const WEEKS_PER_REAL_HOUR = (60 * 60 * 1000) / WEEK_MS;
 export const MAX_CATCHUP_WEEKS = MAX_CATCHUP_REAL_HOURS * WEEKS_PER_REAL_HOUR;
+// Season length (~1936–1948). Public unranked catch-up must not take unbounded weeks.
+export const MAX_HARNESS_WEEKS = 671;
 
 export function catchupWeeks(elapsedMs: number): number {
   if (!Number.isFinite(elapsedMs) || elapsedMs <= 0) return 0;
@@ -12,7 +14,7 @@ export function catchupWeeks(elapsedMs: number): number {
 
 export type CatchupPlan =
   | { ok: true; weeks: number }
-  | { ok: false; status: 400; error: "client_clock" };
+  | { ok: false; status: 400; error: "client_clock" | "invalid_weeks" };
 
 export function planCatchupWeeks(args: {
   elapsedMs: number;
@@ -23,8 +25,11 @@ export function planCatchupWeeks(args: {
     return { ok: false, status: 400, error: "client_clock" };
   }
   const harness = harnessWeeks(args.ranked, args.body);
-  if (harness !== undefined) {
-    return { ok: true, weeks: harness };
+  if (harness && "error" in harness) {
+    return { ok: false, status: 400, error: harness.error };
+  }
+  if (harness && "weeks" in harness) {
+    return { ok: true, weeks: harness.weeks };
   }
   return { ok: true, weeks: catchupWeeks(args.elapsedMs) };
 }
@@ -37,13 +42,23 @@ function hasClientNow(body: unknown): boolean {
   );
 }
 
-function harnessWeeks(ranked: boolean, body: unknown): number | undefined {
+function harnessWeeks(
+  ranked: boolean,
+  body: unknown,
+): { weeks: number } | { error: "invalid_weeks" } | undefined {
   if (ranked !== false) return undefined;
   if (typeof body !== "object" || body === null) return undefined;
   const rec = body as Record<string, unknown>;
   if (rec.ranked !== false) return undefined;
-  if (typeof rec.weeks !== "number" || !Number.isFinite(rec.weeks)) {
-    return undefined;
+  if (!Object.prototype.hasOwnProperty.call(rec, "weeks")) return undefined;
+  const weeks = rec.weeks;
+  if (
+    typeof weeks !== "number" ||
+    !Number.isInteger(weeks) ||
+    weeks < 0 ||
+    weeks > MAX_HARNESS_WEEKS
+  ) {
+    return { error: "invalid_weeks" };
   }
-  return Math.max(0, Math.floor(rec.weeks));
+  return { weeks };
 }

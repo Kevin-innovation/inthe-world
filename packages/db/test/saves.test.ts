@@ -10,7 +10,7 @@ import {
   runCatchup,
   type DbHandle,
 } from "../src/index";
-import { saves } from "../src/schema";
+import { guests, saves } from "../src/schema";
 
 const HOUR_MS = 60 * 60 * 1000;
 const MINUTE_MS = 60 * 1000;
@@ -156,5 +156,50 @@ describe("runCatchup sqlite", () => {
       .where(eq(saves.id, save.id))
       .get();
     expect(stored?.tickIndex).toBe(0);
+  });
+
+  it("rejects unbounded unranked harness weeks without ticking", () => {
+    const handle = openTempDb();
+    const { guestId } = ensureGuest(handle.db, undefined, NOW);
+    const save = createTwoNationSave(handle.db, {
+      guestId,
+      seed: 1,
+      ranked: false,
+      nowMs: NOW,
+      lastTickAtMs: NOW - 40 * MINUTE_MS,
+    });
+    const result = runCatchup(handle, {
+      saveId: save.id,
+      guestId,
+      body: { ranked: false, weeks: 1e9 },
+      nowMs: NOW,
+    });
+    expect(result.httpStatus).toBe(400);
+    if (result.httpStatus !== 400) throw new Error("expected 400");
+    expect(result.body.error).toBe("invalid_weeks");
+    expect(
+      handle.db.select().from(saves).where(eq(saves.id, save.id)).get()
+        ?.tickIndex,
+    ).toBe(0);
+  });
+});
+
+describe("ensureGuest", () => {
+  it("mints a server UUID and does not insert a client-supplied id", () => {
+    const handle = openTempDb();
+    const junk = ensureGuest(handle.db, "not-a-uuid", NOW);
+    expect(junk.created).toBe(true);
+    expect(junk.guestId).not.toBe("not-a-uuid");
+
+    const attacker = "00000000-0000-4000-8000-000000000000";
+    const minted = ensureGuest(handle.db, attacker, NOW);
+    expect(minted.guestId).not.toBe(attacker);
+    expect(
+      handle.db.select().from(guests).where(eq(guests.id, attacker)).get(),
+    ).toBeUndefined();
+
+    const reused = ensureGuest(handle.db, junk.guestId, NOW);
+    expect(reused.created).toBe(false);
+    expect(reused.guestId).toBe(junk.guestId);
   });
 });

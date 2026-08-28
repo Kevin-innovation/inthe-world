@@ -30,13 +30,20 @@ export type CatchupResult =
 
 export type SaveRecord = typeof saves.$inferSelect;
 
+const GUEST_UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isGuestUuid(id: string): boolean {
+  return GUEST_UUID.test(id);
+}
+
 export function ensureGuest(
   db: SimulDb,
   cookieId: string | undefined,
   nowMs: number,
 ): { guestId: string; created: boolean } {
   const existingId = cookieId?.trim() || undefined;
-  if (existingId) {
+  if (existingId && isGuestUuid(existingId)) {
     const row = db
       .select()
       .from(guests)
@@ -49,14 +56,6 @@ export function ensureGuest(
         .run();
       return { guestId: existingId, created: false };
     }
-    db.insert(guests)
-      .values({
-        id: existingId,
-        createdAt: nowMs,
-        lastSeenAt: nowMs,
-      })
-      .run();
-    return { guestId: existingId, created: true };
   }
   const id = randomUUID();
   db.insert(guests)
@@ -127,7 +126,6 @@ function applyCatchupTicks(state: GameState, weeks: number): {
     const result = tick(current, 1, world, rng);
     current = result.state;
     if (result.interrupted) {
-      // pendingEvent auto-resolve is PR9; v1 tick never sets it
       interrupted = true;
       break;
     }
