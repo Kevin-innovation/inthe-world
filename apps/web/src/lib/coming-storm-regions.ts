@@ -1,0 +1,86 @@
+import type { RegionState, Terrain } from "@simul/sim";
+
+/** Mirrors packages/content/regions/1936.yaml so the HQ map has GameState.regions. */
+export const COMING_STORM_REGION_ROWS = [
+  ["britain", "ENG", "coastal", true],
+  ["ireland", "ENG", "coastal", true],
+  ["france_north", "FRA", "plains", true],
+  ["france_south", "FRA", "hills", true],
+  ["low_countries", "HOL", "plains", true],
+  ["rhineland", "GER", "urban", false],
+  ["germany_north", "GER", "plains", true],
+  ["germany_south", "GER", "forest", false],
+  ["austria", "AUS", "mountains", false],
+  ["czechoslovakia", "CZE", "hills", false],
+  ["poland", "POL", "plains", true],
+  ["hungary", "HUN", "plains", false],
+  ["romania", "ROM", "hills", true],
+  ["yugoslavia", "YUG", "mountains", true],
+  ["greece", "GRE", "coastal", true],
+  ["italy_north", "ITA", "plains", true],
+  ["italy_south", "ITA", "coastal", true],
+  ["iberia", "SPR", "hills", true],
+  ["scandinavia", "SWE", "forest", true],
+  ["finland", "FIN", "forest", true],
+  ["baltics", "BAL", "forest", true],
+  ["european_russia", "SOV", "plains", true],
+  ["ukraine", "SOV", "plains", true],
+  ["belarus", "SOV", "forest", false],
+  ["anatolia", "TUR", "hills", true],
+  ["caucasus", "SOV", "mountains", true],
+  ["levant", "ENG", "desert", true],
+  ["arabia", "ENG", "desert", true],
+  ["persia", "PER", "desert", true],
+  ["egypt_suez", "ENG", "desert", true],
+  ["maghreb", "FRA", "desert", true],
+  ["libya", "ITA", "desert", true],
+  ["siberia", "SOV", "forest", true],
+  ["central_asia", "SOV", "desert", false],
+  ["manchuria", "JAP", "plains", true],
+  ["korea", "JAP", "hills", true],
+  ["japan_home", "JAP", "coastal", true],
+  ["north_china", "CHI", "plains", true],
+  ["south_china", "CHI", "hills", true],
+  ["indochina", "FRA", "jungle", true],
+  ["siam", "SIA", "jungle", true],
+  ["india_north", "RAJ", "plains", false],
+  ["india_south", "RAJ", "jungle", true],
+  ["indonesia", "HOL", "jungle", true],
+  ["philippines", "USA", "jungle", true],
+  ["malaya", "ENG", "jungle", true],
+  ["burma", "ENG", "jungle", true],
+  ["mongolia", "SOV", "plains", false],
+  ["west_africa", "FRA", "jungle", true],
+  ["horn_africa", "ETH", "desert", true],
+  ["central_africa", "BEL", "jungle", false],
+  ["southern_africa", "ENG", "plains", true],
+  ["east_africa", "ENG", "plains", true],
+  ["madagascar", "FRA", "jungle", true],
+  ["us_east", "USA", "plains", true],
+  ["us_west", "USA", "plains", true],
+  ["canada", "CAN", "forest", true],
+  ["mexico", "MEX", "hills", true],
+  ["caribbean_central", "USA", "jungle", true],
+  ["brazil", "BRA", "jungle", true],
+  ["southern_cone", "ARG", "plains", true],
+  ["andes", "BRA", "mountains", true],
+  ["australia", "AST", "desert", true],
+  ["pacific_islands", "USA", "coastal", true],
+] as const satisfies ReadonlyArray<readonly [string, string, Terrain, boolean]>;
+
+export type ComingStormRegionId = (typeof COMING_STORM_REGION_ROWS)[number][0];
+
+export function comingStormRegions(): Record<string, RegionState> {
+  const regions: Record<string, RegionState> = {};
+  for (const [id, owner, terrain, coastal] of COMING_STORM_REGION_ROWS) {
+    regions[id] = {
+      id,
+      owner,
+      controller: owner,
+      terrain,
+      coastal,
+      factoryDamage: 0,
+    };
+  }
+  return regions;
+}

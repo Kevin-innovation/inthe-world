@@ -63,6 +63,17 @@
     "previewCost": "예상 비용",
     "insufficientPp": "정치력 부족",
     "map": "맵",
+    "inspectorEmpty": "지역을 선택하세요.",
+    "regionId": "지역",
+    "owner": "소유국",
+    "controller": "통제국",
+    "terrain": "지형",
+    "coastal": "해안",
+    "contestedBy": "분쟁 상대",
+    "factoryDamage": "공장 피해",
+    "yes": "예",
+    "no": "아니오",
+    "none": "없음",
     "newspaper": "신문",
     "newspaperEmpty": "이번 주 소식이 없습니다.",
     "event": "사건",
@@ -196,5 +207,15 @@
       "rally": "독려: 전쟁지지도 +8, 안정 -2, 군수 -4",
       "seekTerms": "조건 모색: 전쟁지지도 -6, 안정 +4, 긴장 -2"
     }
+  },
+  "terrain": {
+    "plains": "평원",
+    "forest": "삼림",
+    "hills": "구릉",
+    "mountains": "산악",
+    "urban": "도시",
+    "desert": "사막",
+    "jungle": "밀림",
+    "coastal": "해안"
   }
 }
