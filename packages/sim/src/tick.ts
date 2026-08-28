@@ -1,3 +1,4 @@
+import { runCampaignPulses, writePaperStrength } from "./combat";
 import { trackRng } from "./rng";
 import type {
   CountryId,
@@ -50,6 +51,12 @@ export function assertFiniteStocks(state: GameState): void {
     }
     if (!Number.isFinite(nation.infraBuildPts)) {
       throw new Error(`error_tick_nan: ${id}.infraBuildPts`);
+    }
+    if (!Number.isFinite(nation.derived.paperStrength)) {
+      throw new Error(`error_tick_nan: ${id}.paperStrength`);
+    }
+    if (!Number.isFinite(nation.derived.forceProjection)) {
+      throw new Error(`error_tick_nan: ${id}.forceProjection`);
     }
   }
 }
@@ -409,8 +416,9 @@ function stepNation(
 
   const civEff = 1.0 + 0.55 * (stocks.researchInd / 100);
   const milEff = 1.0 + 0.5 * (stocks.researchMil / 100);
-  const civOut = stocks.civFactories * utilCiv * civEff;
-  const milOut = stocks.milFactories * utilMil * milEff;
+  const regionDamage = clamp(factoryDamageAvg(state, nation.id), 0, 1);
+  const civOut = stocks.civFactories * (1 - regionDamage) * utilCiv * civEff;
+  const milOut = stocks.milFactories * (1 - regionDamage) * utilMil * milEff;
 
   stocks.consumerGoods += civOut * 0.62;
   stocks.munitions += milOut;
@@ -578,11 +586,15 @@ export function tick(
     stepNation(nation, next, world, tracked);
   }
 
+  // Pulses read this week's paper; losing/winning flags land in time for next week's stab/ws.
+  writePaperStrength(next);
+  const newspapers = runCampaignPulses(next, tracked);
+
   next.rngCursor = tracked.cursor();
   assertFiniteStocks(next);
   return {
     state: next,
-    newspapers: [],
+    newspapers,
     interrupted: false,
     dtWeeks: 1,
   };

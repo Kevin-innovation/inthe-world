@@ -130,6 +130,8 @@ export interface RegionState {
   coastal: boolean;
   contestedBy?: CountryId;
   factoryDamage: number; // 0..1
+  // undefined → static adjacency; [] → isolated (contested-only fronts).
+  neighbors?: RegionId[];
 }
 
 export interface War {
@@ -184,6 +186,7 @@ export interface EndingResolution {
 export interface GameState {
   saveId: string;
   seasonId: SeasonId;
+  contentHash: string; // FNV-1a hex of season pack; ignored by tick
   seed: number;
   rngCursor: number;
   tickIndex: number;
