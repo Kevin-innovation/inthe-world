@@ -1,4 +1,11 @@
 function sortKeys(value: unknown): unknown {
+  if (typeof value === "number") {
+    // JSON.stringify maps Infinity/NaN to null.
+    if (!Number.isFinite(value)) {
+      throw new Error("error_content_hash_nan");
+    }
+    return value;
+  }
   if (value === null || typeof value !== "object") {
     return value;
   }

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { countrySchema } from "../src/schema";
+import {
+  countrySchema,
+  regionsFileSchema,
+  tensionPointSchema,
+} from "../src/schema";
 import { loadComingStormPack } from "../src/load";
 
 describe("country schema", () => {
@@ -32,6 +36,53 @@ describe("country schema", () => {
       stocks: { ...usa.stocks, milFactories: -1 },
     });
     expect(result.success).toBe(false);
+  });
+
+  it("rejects non-finite stock, base, and weight numbers", () => {
+    const pack = loadComingStormPack();
+    const usa = pack.countries.find((row) => row.id === "USA");
+    if (!usa) throw new Error("missing USA");
+    expect(
+      countrySchema.safeParse({
+        ...usa,
+        stocks: { ...usa.stocks, civFactories: Number.POSITIVE_INFINITY },
+      }).success,
+    ).toBe(false);
+    expect(
+      countrySchema.safeParse({
+        ...usa,
+        base: { ...usa.base, oil: Number.NEGATIVE_INFINITY },
+      }).success,
+    ).toBe(false);
+    expect(
+      countrySchema.safeParse({ ...usa, weight: Number.POSITIVE_INFINITY })
+        .success,
+    ).toBe(false);
+  });
+});
+
+describe("regions schema", () => {
+  it("rejects duplicate region ids", () => {
+    const row = {
+      id: "us_east",
+      owner: "USA",
+      terrain: "plains" as const,
+      coastal: true,
+    };
+    expect(regionsFileSchema.safeParse([]).success).toBe(true);
+    expect(regionsFileSchema.safeParse([row]).success).toBe(true);
+    expect(regionsFileSchema.safeParse([row, { ...row }]).success).toBe(false);
+  });
+});
+
+describe("tension schema", () => {
+  it("rejects non-finite tension values", () => {
+    expect(
+      tensionPointSchema.safeParse({
+        at: "1936-03-01",
+        value: Number.POSITIVE_INFINITY,
+      }).success,
+    ).toBe(false);
   });
 });
 

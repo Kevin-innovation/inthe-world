@@ -21,6 +21,18 @@ describe("contentHash", () => {
     expect(canonicalJson({ b: 1, a: 2 })).toBe(canonicalJson({ a: 2, b: 1 }));
   });
 
+  it("throws when a number is non-finite", () => {
+    expect(() => contentHash({ a: Number.POSITIVE_INFINITY })).toThrow(
+      /error_content_hash_nan/,
+    );
+    expect(() => contentHash({ a: Number.NaN })).toThrow(
+      /error_content_hash_nan/,
+    );
+    expect(() => canonicalJson({ nested: [Number.NEGATIVE_INFINITY] })).toThrow(
+      /error_content_hash_nan/,
+    );
+  });
+
   it("changes when a country's civFactories change", () => {
     const pack = loadComingStormPack();
     const mutated = clonePack(pack);

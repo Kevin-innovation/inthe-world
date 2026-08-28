@@ -23,40 +23,40 @@ export const terrainSchema = z.enum([
 ]);
 
 export const resourceBaseSchema = z.object({
-  food: z.number(),
-  steel: z.number(),
-  oil: z.number(),
-  rares: z.number(),
+  food: z.number().finite(),
+  steel: z.number().finite(),
+  oil: z.number().finite(),
+  rares: z.number().finite(),
 });
 
 export const countryStocksSchema = z.object({
-  civFactories: z.number().nonnegative(),
-  milFactories: z.number().nonnegative(),
-  infra: z.number(),
-  population: z.number(),
-  armySize: z.number(),
-  gdp: z.number(),
-  treasury: z.number(),
-  debt: z.number(),
-  inflation: z.number(),
-  politicalPower: z.number(),
-  stability: z.number(),
-  warSupport: z.number(),
-  researchMil: z.number(),
-  researchInd: z.number(),
-  researchSoc: z.number(),
-  food: z.number(),
-  steel: z.number(),
-  oil: z.number(),
-  rares: z.number(),
-  munitions: z.number().default(0),
-  consumerGoods: z.number().default(0),
+  civFactories: z.number().finite().nonnegative(),
+  milFactories: z.number().finite().nonnegative(),
+  infra: z.number().finite(),
+  population: z.number().finite(),
+  armySize: z.number().finite(),
+  gdp: z.number().finite(),
+  treasury: z.number().finite(),
+  debt: z.number().finite(),
+  inflation: z.number().finite(),
+  politicalPower: z.number().finite(),
+  stability: z.number().finite(),
+  warSupport: z.number().finite(),
+  researchMil: z.number().finite(),
+  researchInd: z.number().finite(),
+  researchSoc: z.number().finite(),
+  food: z.number().finite(),
+  steel: z.number().finite(),
+  oil: z.number().finite(),
+  rares: z.number().finite(),
+  munitions: z.number().finite().default(0),
+  consumerGoods: z.number().finite().default(0),
 });
 
 export const countrySchema = z.object({
   id: z.string().min(1),
   titleKey: z.string().min(1),
-  weight: z.number().positive(),
+  weight: z.number().finite().positive(),
   capitalRegion: z.string().min(1),
   faction: factionSchema,
   stocks: countryStocksSchema,
@@ -79,11 +79,14 @@ export const regionSchema = z.object({
   coastal: z.boolean(),
 });
 
-export const regionsFileSchema = z.array(regionSchema);
+export const regionsFileSchema = z.array(regionSchema).refine(
+  (rows) => new Set(rows.map((row) => row.id)).size === rows.length,
+  { message: "duplicate region id" },
+);
 
 export const tensionPointSchema = z.object({
   at: isoDateSchema,
-  value: z.number(),
+  value: z.number().finite(),
 });
 
 export const seasonDefinitionSchema = z.object({
