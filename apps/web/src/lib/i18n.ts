@@ -21,3 +21,15 @@ export function t(
     return value === undefined ? `{${key}}` : String(value);
   });
 }
+
+export function countryName(id: string): string {
+  const path = `country.${id.toLowerCase()}.title`;
+  const named = t(path);
+  return named === path ? id : named;
+}
+
+export function regionName(id: string): string {
+  const path = `region.${id}`;
+  const named = t(path);
+  return named === path ? id : named;
+}

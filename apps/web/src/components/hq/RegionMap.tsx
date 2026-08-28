@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
 import type { RegionState } from "@simul/sim";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { t } from "@/lib/i18n";
+import { countryName, regionName, t } from "@/lib/i18n";
 import { paintedRegionCollection, regionCenter } from "@/lib/region-geojson";
 
 const SATELLITE_TILES =
@@ -30,15 +30,15 @@ function RegionInspector({ region }: { region: RegionState | undefined }) {
       <dl>
         <div>
           <dt>{t("hq.regionId")}</dt>
-          <dd>{region.id}</dd>
+          <dd>{regionName(region.id)}</dd>
         </div>
         <div>
           <dt>{t("hq.owner")}</dt>
-          <dd>{region.owner}</dd>
+          <dd>{countryName(region.owner)}</dd>
         </div>
         <div>
           <dt>{t("hq.controller")}</dt>
-          <dd>{region.controller}</dd>
+          <dd>{countryName(region.controller)}</dd>
         </div>
         <div>
           <dt>{t("hq.terrain")}</dt>
@@ -50,7 +50,7 @@ function RegionInspector({ region }: { region: RegionState | undefined }) {
         </div>
         <div>
           <dt>{t("hq.contestedBy")}</dt>
-          <dd>{contested ?? t("hq.none")}</dd>
+          <dd>{contested ? countryName(contested) : t("hq.none")}</dd>
         </div>
         <div>
           <dt>{t("hq.factoryDamage")}</dt>
@@ -346,7 +346,7 @@ export function RegionMap({
               <option value="">{t("hq.inspectorEmpty")}</option>
               {regionIds.map((id) => (
                 <option key={id} value={id}>
-                  {id}
+                  {regionName(id)}
                 </option>
               ))}
             </select>
