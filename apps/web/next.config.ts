@@ -31,9 +31,8 @@ function loadRepoEnvLocal(dir: string): void {
 loadRepoEnvLocal(repoRoot);
 
 const config: NextConfig = {
+  // Must not also appear in serverExternalPackages — Next 15 rejects the overlap.
   transpilePackages: ["@simul/sim", "@simul/db", "@simul/content"],
-  // Keep content external so YAML files resolve from packages/content via import.meta.url.
-  serverExternalPackages: ["@simul/content"],
   // Monorepo: trace files from the workspace root, not apps/web.
   outputFileTracingRoot: repoRoot,
   outputFileTracingIncludes: {
